@@ -1,10 +1,9 @@
 import { useState, useEffect } from "react";
 import supabase from "../services/supabase";
 import { 
-  Activity, Heart, Wind, Thermometer, LogOut, 
-  Ambulance, MapPin, Phone, Download, RefreshCw, 
-  Edit2, Watch, Terminal, Send, CheckCircle, 
-  ClipboardList, Clock, FileText, Stethoscope, ChevronRight, LayoutDashboard, History, Settings, LocateFixed
+  Activity, LogOut, Ambulance, MapPin, Phone, 
+  RefreshCw, Edit2, Watch, Terminal, Send, 
+  CheckCircle, Clock, LayoutDashboard, History, HeartPulse, Download
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import jsPDF from "jspdf";
@@ -13,14 +12,16 @@ import { fetchGoogleFitData } from '../services/googleFit';
 
 // 🏥 VERIFIED HOSPITAL DATABASE
 const REAL_PUNE_HOSPITALS = [
-  { id: 1, name: "VishwaRaj Hospital", type: "General ER", lat: 18.4893, lng: 74.0242, phone: "020 2691 9000" },
-  { id: 2, name: "Noble Hospital", type: "Cardiac ICU", lat: 18.5105, lng: 73.9268, phone: "020 6628 5000" },
-  { id: 3, name: "Ruby Hall Clinic", type: "Cardiac ICU", lat: 18.5334, lng: 73.8772, phone: "020 6645 5100" },
-  { id: 4, name: "Sahyadri Super Speciality", type: "General ER", lat: 18.5158, lng: 73.9445, phone: "020 6721 3000" },
-  { id: 5, name: "Sancheti Hospital", type: "Stroke Center", lat: 18.5283, lng: 73.8524, phone: "020 2899 9999" },
-  { id: 6, name: "Deenanath Mangeshkar", type: "General ER", lat: 18.5020, lng: 73.8322, phone: "020 4015 1000" },
-  { id: 7, name: "Jupiter Hospital", type: "General ER", lat: 18.5639, lng: 73.7784, phone: "020 2790 2790" },
-  { id: 8, name: "Aditya Birla Memorial", type: "Cardiac ICU", lat: 18.6258, lng: 73.7747, phone: "020 3071 7777" }
+  { id: 1, name: "VishwaRaj Hospital", type: "General ER", lat: 18.489742, lng: 74.022356, phone: "020 2691 9000" },
+  { id: 2, name: "Noble Hospital", type: "Cardiac ICU", lat: 18.504899, lng: 73.927251, phone: "020 6628 5000" },
+  { id: 3, name: "Ruby Hall Clinic", type: "Cardiac ICU", lat: 18.5330, lng: 73.8772, phone: "020 6645 5100" },
+  { id: 4, name: "Sahyadri Super Speciality", type: "General ER", lat: 18.5029, lng: 73.9320, phone: "020 6721 3000" },
+  { id: 5, name: "Sancheti Hospital", type: "Stroke Center", lat: 18.529636, lng: 73.852910, phone: "020 2899 9999" },
+  { id: 6, name: "Deenanath Mangeshkar", type: "General ER", lat: 18.5018, lng: 73.8327, phone: "020 4015 1000" },
+  { id: 7, name: "Jupiter Hospital", type: "General ER", lat: 18.5656, lng: 73.7860, phone: "020 2790 2790" },
+  { id: 8, name: "Aditya Birla Memorial", type: "Cardiac ICU", lat: 18.6258, lng: 73.7749, phone: "020 3071 7777" },
+  { id: 9, name: "Manipal Hospital", type: "General ER", lat: 18.541173, lng: 73.935474, phone: "020 6740 0000" },
+  { id: 10, name: "Jehangir Hospital", type: "General ER", lat: 18.530334, lng: 73.876789, phone: "020 6688 8888" }
 ];
 
 const calculateDistance = (lat1, lon1, lat2, lon2) => {
@@ -128,14 +129,13 @@ const PatientDashboard = () => {
   const handleAnalyze = async () => {
     setLoading(true); setResult(null); setShowHospitals(false); setSendSuccess(false);
     try {
-      const res = await fetch("http://127.0.0.1:5000/predict", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(inputs) });
+      const res = await fetch("http://localhost:5000/predict", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(inputs) });
       const data = await res.json();
       setResult(data);
       if (data.triage_result === 'HIGH') handleFindHospital();
     } catch (e) { alert("AI Service Offline"); } finally { setLoading(false); }
   };
 
-  // 🚀 SEND TO DOCTOR LOGIC
   const handleSendToDoctor = async () => {
     if (!selectedDoctorId) { alert("Please select a doctor first."); return; }
     setIsSending(true);
@@ -154,6 +154,154 @@ const PatientDashboard = () => {
     } catch (e) { alert("Error sending report."); } finally { setIsSending(false); }
   };
 
+  // 📄 PREMIUM DYNAMIC PDF GENERATOR
+  const handleDownloadPDF = () => {
+    const doc = new jsPDF();
+    let currentY = 0; // Dynamic Y tracker to prevent overlapping
+
+    // --- 1. PREMIUM HEADER BANNER ---
+    doc.setFillColor(37, 99, 235); // MedAI Blue Background
+    doc.rect(0, 0, 210, 35, 'F');
+    
+    doc.setTextColor(255, 255, 255); // White Text
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(22);
+    doc.text("MedAI Clinical Triage Report", 15, 22);
+    
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.text(`Generated on: ${new Date().toLocaleString()}`, 15, 29);
+
+    currentY = 45;
+
+    // --- 2. AI DISCLAIMER WARNING BOX ---
+    doc.setFillColor(254, 242, 242); // Light red background
+    doc.setDrawColor(252, 165, 165); // Red border
+    doc.roundedRect(15, currentY, 180, 12, 2, 2, 'FD');
+    
+    doc.setTextColor(220, 38, 38); // Red text
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.text("WARNING: AI-GENERATED PRELIMINARY REPORT - REQUIRES PHYSICIAN VERIFICATION", 20, currentY + 8);
+
+    currentY += 25;
+
+    // --- 3. PATIENT VITALS BOX ---
+    doc.setTextColor(15, 23, 42); // Dark slate
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.text("Patient Vitals Snapshot", 15, currentY);
+    
+    currentY += 5;
+
+    // Draw a neat structured box around vitals
+    doc.setDrawColor(226, 232, 240);
+    doc.setFillColor(248, 250, 252);
+    doc.roundedRect(15, currentY, 180, 25, 2, 2, 'FD');
+
+    doc.setFontSize(11);
+    doc.setTextColor(100, 116, 139); // Slate Gray for labels
+    doc.text("Heart Rate:", 20, currentY + 10);
+    doc.text("SpO2 (Oxygen):", 110, currentY + 10);
+    doc.text("Blood Pressure:", 20, currentY + 20);
+    doc.text("Activity:", 110, currentY + 20);
+
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(15, 23, 42); // Black for values
+    doc.text(`${inputs.heart_rate} BPM`, 48, currentY + 10);
+    doc.text(`${inputs.spo2}%`, 142, currentY + 10);
+    doc.text(`${inputs.systolic_bp} / ${inputs.diastolic_bp} mmHg`, 52, currentY + 20);
+    doc.text(`${inputs.steps} Steps`, 128, currentY + 20);
+
+    currentY += 40;
+
+    // --- 4. AI DEEP ANALYSIS SECTION ---
+    if (result) {
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(16);
+      doc.text("Diagnostic Analysis", 15, currentY);
+      
+      currentY += 6;
+
+      // Color code the risk level badge
+      if (result.triage_result === "HIGH") {
+        doc.setFillColor(239, 68, 68); // Red
+      } else if (result.triage_result === "LOW") {
+        doc.setFillColor(16, 185, 129); // Green
+      } else {
+        doc.setFillColor(245, 158, 11); // Orange
+      }
+      doc.roundedRect(15, currentY, 35, 8, 1, 1, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(10);
+      doc.text(`${result.triage_result} RISK`, 20, currentY + 6);
+
+      currentY += 16;
+
+      // Dynamic Clinical Summary (Calculates lines so it doesn't overlap)
+      doc.setTextColor(15, 23, 42);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      doc.text("Clinical Summary:", 15, currentY);
+      
+      currentY += 6;
+
+      doc.setTextColor(71, 85, 105);
+      doc.setFont("helvetica", "normal");
+      const summaryText = result.deep_analysis?.simple_summary || "No summary available.";
+      const summaryLines = doc.splitTextToSize(summaryText, 180);
+      doc.text(summaryLines, 15, currentY);
+
+      // Add dynamic height based on how many lines the AI generated
+      currentY += (summaryLines.length * 5) + 8; 
+
+      // Dynamic Recommended Action Plan
+      doc.setTextColor(15, 23, 42);
+      doc.setFont("helvetica", "bold");
+      doc.text("Recommended Action Plan:", 15, currentY);
+      
+      currentY += 6;
+      
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(71, 85, 105);
+      const actions = result.deep_analysis?.action_plan || [];
+      actions.forEach((action, index) => {
+        // Split action lines too, just in case they are super long
+        const actionLines = doc.splitTextToSize(`${index + 1}. ${action}`, 175);
+        doc.text(actionLines, 20, currentY);
+        currentY += (actionLines.length * 5) + 2;
+      });
+
+      currentY += 6;
+
+      // Hospital Recommendation
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(15, 23, 42);
+      doc.text("Care Setting:", 15, currentY);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(37, 99, 235); // Highlight facility in Blue
+      doc.text(`${result.deep_analysis?.hospital_recommendation || "N/A"}`, 45, currentY);
+      
+    } else {
+      doc.setFont("helvetica", "italic");
+      doc.setTextColor(148, 163, 184);
+      doc.text("AI Analysis not yet performed. Please process vitals first.", 15, currentY);
+    }
+
+    // --- 5. BOTTOM FOOTER ---
+    const pageHeight = doc.internal.pageSize.height || doc.internal.pageSize.getHeight();
+    doc.setDrawColor(226, 232, 240);
+    doc.line(15, pageHeight - 15, 195, pageHeight - 15);
+    
+    doc.setFont("helvetica", "italic");
+    doc.setFontSize(8);
+    doc.setTextColor(148, 163, 184);
+    doc.text("MedAI Platform | Strictly for informational purposes. Not a substitute for professional medical advice.", 105, pageHeight - 8, null, null, "center");
+
+    // Save PDF
+    doc.save(`MedAI_Clinical_Chart_${new Date().getTime()}.pdf`);
+  };
+//start of frontend code
   return (
     <div className="flex min-h-screen bg-white font-sans text-slate-900 selection:bg-blue-100">
       <style>{`
@@ -204,14 +352,44 @@ const PatientDashboard = () => {
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {['heart_rate', 'spo2', 'systolic_bp', 'steps'].map(k => (
-                <div key={k} className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-4">{k.replace('_', ' ')}</span>
-                  <div className="flex items-baseline gap-2">
-                    <input type="number" value={inputs[k]} onChange={e => setInputs({...inputs, [k]: e.target.value})} className="serif text-4xl w-full bg-transparent border-none outline-none text-slate-900"/>
-                  </div>
+              
+              {/* Heart Rate */}
+              <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-4">Heart Rate</span>
+                <div className="flex items-baseline gap-2">
+                  <input type="number" value={inputs.heart_rate} onChange={e => setInputs({...inputs, heart_rate: e.target.value})} className="serif text-4xl w-full bg-transparent border-none outline-none text-slate-900"/>
+                  <span className="text-xs font-bold text-slate-300">BPM</span>
                 </div>
-              ))}
+              </div>
+
+              {/* SpO2 */}
+              <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-4">SpO2</span>
+                <div className="flex items-baseline gap-2">
+                  <input type="number" value={inputs.spo2} onChange={e => setInputs({...inputs, spo2: e.target.value})} className="serif text-4xl w-full bg-transparent border-none outline-none text-slate-900"/>
+                  <span className="text-xs font-bold text-slate-300">%</span>
+                </div>
+              </div>
+
+              {/* Combined Blood Pressure */}
+              <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-4">Blood Pressure</span>
+                <div className="flex items-baseline gap-2">
+                  <input type="number" value={inputs.systolic_bp} onChange={e => setInputs({...inputs, systolic_bp: e.target.value})} className="serif text-4xl w-full bg-transparent border-none outline-none text-slate-900 text-center"/>
+                  <span className="serif text-4xl text-slate-300">/</span>
+                  <input type="number" value={inputs.diastolic_bp} onChange={e => setInputs({...inputs, diastolic_bp: e.target.value})} className="serif text-4xl w-full bg-transparent border-none outline-none text-slate-900 text-center"/>
+                  <span className="text-xs font-bold text-slate-300 hidden xl:block">mmHg</span>
+                </div>
+              </div>
+
+              {/* Steps */}
+              <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-4">Steps</span>
+                <div className="flex items-baseline gap-2">
+                  <input type="number" value={inputs.steps} onChange={e => setInputs({...inputs, steps: e.target.value})} className="serif text-4xl w-full bg-transparent border-none outline-none text-slate-900"/>
+                </div>
+              </div>
+
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -221,9 +399,17 @@ const PatientDashboard = () => {
                     <div className={`p-10 rounded-[40px] border-l-[16px] shadow-xl bg-white ${result.triage_result === 'HIGH' ? 'border-red-500' : 'border-emerald-500'}`}>
                       <h2 className="serif text-6xl text-slate-900 mb-4 tracking-tight uppercase">{result.triage_result} RISK</h2>
                       <p className="text-slate-400 font-medium text-lg leading-relaxed italic mb-8">"{result.deep_analysis?.simple_summary}"</p>
-                      <button onClick={handleAnalyze} className="bg-slate-900 text-white px-8 py-5 rounded-2xl font-bold flex items-center gap-3 hover:bg-slate-800 transition-all shadow-lg">
-                        <RefreshCw size={20} className={loading ? "animate-spin" : ""}/> Refresh Analysis
-                      </button>
+                      
+                      <div className="flex gap-4 flex-wrap">
+                        <button onClick={handleAnalyze} className="bg-slate-900 text-white px-8 py-5 rounded-2xl font-bold flex items-center gap-3 hover:bg-slate-800 transition-all shadow-lg">
+                          <RefreshCw size={20} className={loading ? "animate-spin" : ""}/> Refresh Analysis
+                        </button>
+                        
+                        {/* 🔥 NEW PDF DOWNLOAD BUTTON */}
+                        <button onClick={handleDownloadPDF} className="bg-blue-50 text-blue-600 border border-blue-200 px-8 py-5 rounded-2xl font-bold flex items-center gap-3 hover:bg-blue-100 transition-all shadow-sm">
+                          <Download size={20}/> Download Chart
+                        </button>
+                      </div>
                     </div>
 
                     {result.triage_result === 'HIGH' && showHospitals && (
@@ -286,12 +472,18 @@ const PatientDashboard = () => {
                     <span className={`px-4 py-2 rounded-full font-black text-[10px] uppercase tracking-widest ${report.risk_level === 'HIGH' ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-600'}`}>{report.risk_level} Risk</span>
                     <span className="text-xs font-bold text-slate-300 uppercase tracking-widest">{new Date(report.created_at).toLocaleDateString()}</span>
                   </div>
-                  <h4 className="serif text-4xl mb-6 text-slate-900 italic tracking-tight leading-none">"{report.ai_summary}"</h4>
+                  <h4 className="serif text-4xl mb-6 text-slate-900 italic tracking-tight leading-none leading-tight">"{report.ai_summary}"</h4>
                 </div>
                 <div className="md:w-80 bg-slate-50 rounded-[32px] p-8 border border-slate-100 flex flex-col justify-between">
                   <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6">Physician Note</h5>
                   {report.status === 'Verified' ? (
-                    <p className="text-sm font-medium text-slate-600 leading-relaxed italic">"{report.doctor_notes}"</p>
+                    <div className="space-y-4">
+                      <p className="text-sm font-medium text-slate-600 italic leading-relaxed">"{report.doctor_notes}"</p>
+                      <div className="flex items-center gap-2 pt-4 border-t border-slate-200">
+                         <div className="bg-emerald-50 text-emerald-600 p-1.5 rounded-full"><CheckCircle size={10}/></div>
+                         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest tracking-widest">Digitally Signed</span>
+                      </div>
+                    </div>
                   ) : (
                     <div className="flex flex-col items-center justify-center gap-4 text-slate-300 h-full"><Clock size={32} className="animate-pulse"/><p className="text-[10px] font-bold uppercase tracking-widest">Awaiting Verification</p></div>
                   )}
