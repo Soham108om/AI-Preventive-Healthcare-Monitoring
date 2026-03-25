@@ -27,7 +27,7 @@ risk_mapping = {0: "HIGH", 1: "LOW", 2: "MODERATE"}
 # 2. SETUP GEMINI
 # ==========================================
 # 👇 PASTE YOUR NEW API KEY HERE
-GEMINI_API_KEY = "AIzaSyBsckop5gIJ9P8breDqJGMdqso4cwqDnrw"
+GEMINI_API_KEY = ""
 
 def ask_gemini_advanced(prompt):
     # Tests the most reliable active API endpoints in order
