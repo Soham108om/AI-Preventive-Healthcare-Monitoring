@@ -47,6 +47,7 @@ risk_mapping = {0: "HIGH", 1: "LOW", 2: "MODERATE"}
 # Enable 2-Step Verification on Gmail, then generate an App Password:
 # Google Account → Security → App passwords → generate one for 'Mail'
 # ==========================================
+<<<<<<< HEAD
 GMAIL_SENDER   = os.environ.get("GMAIL_SENDER", "").strip()   # your Gmail address
 GMAIL_APP_PASS = os.environ.get("GMAIL_APP_PASS", "").strip() # 16-char App Password (no spaces)
 ALERT_EMAIL_TO = os.environ.get("ALERT_EMAIL_TO", "").strip() # where to send the alert (can be same Gmail)
@@ -140,6 +141,10 @@ def test_sos():
 # ==========================================
 # 👇 Reads from .env or environment. Hardcoded key is a local dev fallback.
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "AIzaSyCLj1XuF_AEXdKYUvGMv2JEWFR_ngBQniw ").strip()
+=======
+# 👇 PASTE YOUR NEW API KEY HERE
+GEMINI_API_KEY = ""
+>>>>>>> 23bdb21b22273f2478f84eedd6f61986c3c24d6e
 
 def ask_gemini_advanced(prompt):
     # Tests the most reliable active API endpoints in order
