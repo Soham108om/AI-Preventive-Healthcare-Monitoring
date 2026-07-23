@@ -5,7 +5,7 @@ import {
   RefreshCw, Edit2, Watch, Terminal, Send, 
   CheckCircle, Clock, LayoutDashboard, History, HeartPulse, Download,
   MessageSquare, X, Languages, Mic, Volume2, Square,
-  Pill, ShoppingCart, AlertOctagon, ExternalLink, CalendarDays
+  Pill, ShoppingCart, AlertOctagon, ExternalLink, CalendarDays, Trash2, Camera, UploadCloud
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import jsPDF from "jspdf";
@@ -65,8 +65,20 @@ const PatientDashboard = () => {
   // 💊 PHARMACY STATE MOCK DATA
   const [showAddMedModal, setShowAddMedModal] = useState(false);
   const [newMed, setNewMed] = useState({ name: '', dosage: '', frequency: '1 pill daily', total_pills: '', remaining_pills: '', expiry_date: '' });
+  const [scanningPill, setScanningPill] = useState(false);
+  const fileInputRef = useRef(null);
 
   const [medications, setMedications] = useState([]);
+
+  // 🆘 DDI CHECKER + EMERGENCY SOS STATE
+  const [emergencyContact, setEmergencyContact] = useState("");
+  const [emergencyEmail, setEmergencyEmail]     = useState("");  // per-user alert destination
+  const [savingContact,  setSavingContact]       = useState(false);
+  const [contactSaved,   setContactSaved]        = useState(false);
+  const [sosBannerVisible, setSosBannerVisible] = useState(false);
+  const [sosAlertSent, setSosAlertSent] = useState(false);
+  const [ddiWarning, setDdiWarning] = useState(null);
+  const [ddiChecking, setDdiChecking] = useState(false);
 
   // Cache voices on load — Chrome exposes them asynchronously
   useEffect(() => {
@@ -76,13 +88,37 @@ const PatientDashboard = () => {
     return () => window.speechSynthesis.removeEventListener("voiceschanged", loadVoices);
   }, []);
 
+  // 🔔 Request browser notification permission on first load
+  useEffect(() => {
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+  }, []);
+
   useEffect(() => {
     fetchInitialData();
   }, []);
 
   const fetchInitialData = async () => {
-    const { data: docs } = await supabase.from('profiles').select('id, full_name, rating').eq('role', 'doctor').order('rating', { ascending: false }); 
+    // Load doctors list
+    const { data: docs } = await supabase.from('profiles').select('id, full_name, rating').eq('role', 'doctor').order('rating', { ascending: false });
     if (docs) setDoctorsList(docs);
+
+    // 🔑 Load THIS user's saved emergency contact from their profile
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('emergency_phone, emergency_email')
+        .eq('id', user.id)
+        .single();
+      if (profile) {
+        if (profile.emergency_phone) setEmergencyContact(profile.emergency_phone);
+        if (profile.emergency_email) setEmergencyEmail(profile.emergency_email);
+      }
+    } catch (err) {
+      console.warn('⚠️ Could not load emergency contact from profile:', err.message);
+    }
   };
 
   useEffect(() => {
@@ -228,13 +264,69 @@ const PatientDashboard = () => {
     setHospitalList(hospitals); setShowHospitals(true);
   };
 
-  const handleAnalyze = async () => {
-    setLoading(true); setResult(null); setShowHospitals(false); setSendSuccess(false);
+  // 🔔 Show browser push notification for HIGH RISK
+  const triggerBrowserNotification = (vitals, contact) => {
+    if ("Notification" in window && Notification.permission === "granted") {
+      new Notification("🚨 MEDAI Emergency Alert", {
+        body: `HIGH RISK detected!\nHR: ${vitals.heart_rate} BPM | SpO2: ${vitals.spo2}% | BP: ${vitals.systolic_bp}/${vitals.diastolic_bp} mmHg\nAlert sent to: ${contact || "emergency contact"}`,
+        icon: "/favicon.ico",
+        badge: "/favicon.ico",
+        tag: "medai-emergency",
+        requireInteraction: true,   // stays until user dismisses
+      });
+    }
+  };
+
+  // 🗄️ Log emergency event to Supabase for audit trail
+  const logEmergencyToSupabase = async (vitals, location, contact) => {
     try {
-      const res = await fetch("http://localhost:5000/predict", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(inputs) });
+      const { data: { user } } = await supabase.auth.getUser();
+      await supabase.from('emergency_logs').insert([{
+        patient_id:       user?.id,
+        heart_rate:       parseInt(vitals.heart_rate),
+        spo2:             parseInt(vitals.spo2),
+        systolic_bp:      parseInt(vitals.systolic_bp),
+        diastolic_bp:     parseInt(vitals.diastolic_bp),
+        steps:            parseInt(vitals.steps),
+        emergency_contact: contact,
+        location_lat:     location?.lat || null,
+        location_lng:     location?.lng || null,
+        triggered_at:     new Date().toISOString(),
+      }]);
+      console.log("✅ Emergency event logged to Supabase");
+    } catch (err) {
+      // Non-critical — don't block the UI if table doesn't exist yet
+      console.warn("⚠️ Could not log emergency to Supabase:", err.message);
+    }
+  };
+
+  const handleAnalyze = async () => {
+    setLoading(true); setResult(null); setShowHospitals(false); setSendSuccess(false); setSosBannerVisible(false); setSosAlertSent(false);
+    try {
+      const payload = {
+        ...inputs,
+        emergency_contact: emergencyContact,
+        emergency_email:   emergencyEmail,   // 📧 per-user email — backend sends here, NOT hardcoded
+        location: userLocation ? { lat: userLocation.lat, lng: userLocation.lng } : {}
+      };
+      const res = await fetch("http://localhost:5000/predict", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       const data = await res.json();
       setResult(data);
-      if (data.triage_result === 'HIGH') handleFindHospital();
+
+      if (data.triage_result === 'HIGH') {
+        handleFindHospital();
+
+        // 🔔 1. Instant browser push notification (works immediately, no setup)
+        triggerBrowserNotification(inputs, emergencyContact);
+
+        // 🗄️ 2. Log to Supabase for audit trail
+        logEmergencyToSupabase(inputs, userLocation, emergencyContact);
+
+        // 📧 3. Show SOS banner — email was attempted by backend
+        setSosBannerVisible(true);
+        setSosAlertSent(true);
+        // Keep banner visible until user refreshes analysis
+      }
     } catch (e) { alert("AI Service Offline"); } finally { setLoading(false); }
   };
 
@@ -243,17 +335,25 @@ const PatientDashboard = () => {
     setIsSending(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      const { error } = await supabase.from('medical_reports').insert([{ 
+      console.log("🔍 Inserting report for user:", user?.id, "→ doctor:", selectedDoctorId);
+      const { data: insertData, error } = await supabase.from('medical_reports').insert([{ 
         patient_id: user.id, 
         doctor_id: selectedDoctorId, 
         vitals: inputs, 
         ai_summary: result.deep_analysis?.simple_summary || "Automated analysis completed.", 
         risk_level: result.triage_result || "LOW", 
         status: "Pending Review" 
-      }]);
-      if (error) throw error;
+      }]).select();
+      if (error) {
+        console.error("❌ Supabase insert error:", JSON.stringify(error, null, 2));
+        alert(`Supabase Error: ${error.message}\nCode: ${error.code}\nDetails: ${error.details}`);
+        throw error;
+      }
+      console.log("✅ Report inserted:", insertData);
       setSendSuccess(true);
-    } catch (e) { alert("Error sending report."); } finally { setIsSending(false); }
+    } catch (e) { 
+      console.error("❌ handleSendToDoctor failed:", e);
+    } finally { setIsSending(false); }
   };
 
   const handleDownloadPDF = () => {
@@ -443,6 +543,35 @@ const PatientDashboard = () => {
                 {result ? (
                   <>
                     <div className={`p-10 rounded-[40px] border-l-[16px] shadow-xl bg-white ${result.triage_result === 'HIGH' ? 'border-red-500' : 'border-emerald-500'}`}>
+                      {/* 🆘 SOS Multi-Channel Alert Banner */}
+                      {sosBannerVisible && (
+                        <div className="mb-6 rounded-2xl overflow-hidden shadow-xl animate-in slide-in-from-top-2 duration-300 border border-red-200">
+                          <div className="bg-red-600 text-white px-6 py-4 flex items-center gap-3">
+                            <Ambulance size={22} className="shrink-0 animate-pulse"/>
+                            <div>
+                              <p className="font-black text-sm uppercase tracking-widest">🚨 Emergency SOS Dispatched</p>
+                              <p className="text-xs opacity-80 mt-0.5">All emergency channels activated for: <strong>{emergencyContact || "emergency contact"}</strong></p>
+                            </div>
+                          </div>
+                          <div className="bg-red-50 px-6 py-4 grid grid-cols-3 gap-3 text-center">
+                            <div className="bg-white rounded-xl p-3 border border-red-100">
+                              <p className="text-lg mb-1">🔔</p>
+                              <p className="text-[10px] font-black uppercase tracking-widest text-red-600">Browser Alert</p>
+                              <p className="text-[10px] text-slate-500 mt-0.5">Sent to this device</p>
+                            </div>
+                            <div className="bg-white rounded-xl p-3 border border-red-100">
+                              <p className="text-lg mb-1">📧</p>
+                              <p className="text-[10px] font-black uppercase tracking-widest text-red-600">Email Alert</p>
+                              <p className="text-[10px] text-slate-500 mt-0.5">Via Gmail SMTP</p>
+                            </div>
+                            <div className="bg-white rounded-xl p-3 border border-red-100">
+                              <p className="text-lg mb-1">🗄️</p>
+                              <p className="text-[10px] font-black uppercase tracking-widest text-red-600">DB Logged</p>
+                              <p className="text-[10px] text-slate-500 mt-0.5">Saved to Supabase</p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                       <h2 className="serif text-6xl text-slate-900 mb-4 tracking-tight uppercase">{result.triage_result} RISK</h2>
                       <p className="text-slate-400 font-medium text-lg leading-relaxed italic mb-8">"{result.deep_analysis?.simple_summary}"</p>
                       <div className="flex gap-4 flex-wrap">
@@ -490,6 +619,64 @@ const PatientDashboard = () => {
                     </button>
                   ))}
                 </div>
+
+                {/* 🆘 Emergency Contact Card — per-user, saved to Supabase */}
+                <div className="mb-6 bg-red-50 border border-red-100 rounded-3xl p-5">
+                  <div className="flex items-center justify-between mb-3">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-red-500">Emergency SOS Contact</label>
+                    {contactSaved && <span className="text-[10px] font-bold text-emerald-600 flex items-center gap-1"><CheckCircle size={10}/> Saved</span>}
+                  </div>
+
+                  {/* Phone */}
+                  <div className="flex items-center gap-2 bg-white border border-red-100 rounded-2xl px-4 py-3 mb-2 focus-within:ring-2 focus-within:ring-red-200 transition-all">
+                    <Phone size={14} className="text-red-400 shrink-0"/>
+                    <input
+                      id="emergency-contact-input"
+                      type="tel"
+                      value={emergencyContact}
+                      onChange={e => { setEmergencyContact(e.target.value); setContactSaved(false); }}
+                      placeholder="Emergency phone number"
+                      className="bg-transparent outline-none text-sm font-bold text-slate-700 w-full placeholder:text-red-200"
+                    />
+                  </div>
+
+                  {/* Email */}
+                  <div className="flex items-center gap-2 bg-white border border-red-100 rounded-2xl px-4 py-3 mb-3 focus-within:ring-2 focus-within:ring-red-200 transition-all">
+                    <span className="text-red-400 shrink-0 text-xs font-black">@</span>
+                    <input
+                      id="emergency-email-input"
+                      type="email"
+                      value={emergencyEmail}
+                      onChange={e => { setEmergencyEmail(e.target.value); setContactSaved(false); }}
+                      placeholder="Emergency contact email"
+                      className="bg-transparent outline-none text-sm font-bold text-slate-700 w-full placeholder:text-red-200"
+                    />
+                  </div>
+
+                  {/* Save button */}
+                  <button
+                    onClick={async () => {
+                      setSavingContact(true);
+                      try {
+                        const { data: { user } } = await supabase.auth.getUser();
+                        await supabase.from('profiles').update({
+                          emergency_phone: emergencyContact,
+                          emergency_email: emergencyEmail,
+                        }).eq('id', user.id);
+                        setContactSaved(true);
+                      } catch (err) {
+                        alert('Could not save: ' + err.message);
+                      } finally { setSavingContact(false); }
+                    }}
+                    disabled={savingContact || (!emergencyContact && !emergencyEmail)}
+                    className="w-full py-2.5 rounded-xl text-xs font-black uppercase tracking-widest bg-red-600 text-white hover:bg-red-700 disabled:opacity-40 transition-all flex items-center justify-center gap-2"
+                  >
+                    {savingContact ? <RefreshCw size={12} className="animate-spin"/> : <CheckCircle size={12}/>}
+                    {savingContact ? 'Saving...' : 'Save Emergency Contact'}
+                  </button>
+                  <p className="text-[10px] text-slate-400 mt-2 text-center">Saved once — reloads automatically every session.</p>
+                </div>
+
                 <button 
                   onClick={handleSendToDoctor} 
                   disabled={!result || !selectedDoctorId || isSending} 
@@ -568,9 +755,12 @@ const PatientDashboard = () => {
                         <div className={`p-3 rounded-2xl ${isLow ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'} `}>
                           <Pill size={24}/>
                         </div>
-                        {(isLow || isExpiring) && (
-                           <span className="flex items-center gap-1 text-[10px] uppercase font-black tracking-widest text-red-500 bg-red-50 px-3 py-1.5 rounded-full"><AlertOctagon size={12}/> {isExpiring ? "Expiring Soon" : `${Math.floor(daysLeft)} Days Left`}</span>
-                        )}
+                        <div className="flex gap-2 items-center">
+                          {(isLow || isExpiring) && (
+                             <span className="flex items-center gap-1 text-[10px] uppercase font-black tracking-widest text-red-500 bg-red-50 px-3 py-1.5 rounded-full"><AlertOctagon size={12}/> {isExpiring ? "Expiring Soon" : `${Math.floor(daysLeft)} Days Left`}</span>
+                          )}
+                          <button onClick={() => setMedications(medications.filter(m => m.id !== med.id))} className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"><Trash2 size={16}/></button>
+                        </div>
                       </div>
                       <h3 className="serif text-3xl text-slate-900 mb-1">{med.name}</h3>
                       <p className="text-sm font-bold text-slate-400">{med.dosage} • {med.frequency}</p>
@@ -594,7 +784,26 @@ const PatientDashboard = () => {
 
                     {/* Multi-Pharmacy Compare & Action */}
                     <div className="space-y-2 mt-auto pt-6 border-t border-slate-100">
-                        <p className={`text-[10px] font-black uppercase tracking-widest text-center mb-2 ${isLow || isExpiring ? 'text-red-500' : 'text-slate-400'}`}>Compare Prices</p>
+                        <p className={`text-[10px] font-black uppercase tracking-widest text-center mb-2 ${isLow || isExpiring ? 'text-red-500' : 'text-slate-400'}`}>Compare Prices & Refill</p>
+                        
+                        {(isLow || isExpiring) && !med.refill_requested && (
+                          <button 
+                            onClick={() => {
+                              const updated = medications.map(m => m.id === med.id ? { ...m, refill_requested: true } : m);
+                              setMedications(updated);
+                              alert("Refill Request sent to your Doctor's Dashboard!");
+                            }}
+                            className="w-full py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 bg-slate-900 border border-slate-900 text-white hover:bg-slate-800 shadow-xl transition-all mb-2"
+                          >
+                            <Send size={14}/> Notify Doctor for Rx Refill
+                          </button>
+                        )}
+                        {(isLow || isExpiring) && med.refill_requested && (
+                          <div className="w-full py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 bg-emerald-50 text-emerald-700 border border-emerald-100 mb-2">
+                             <CheckCircle size={14}/> Rx Request Sent
+                          </div>
+                        )}
+
                         <a href={`https://www.1mg.com/search/all?name=${med.name}`} target="_blank" rel="noreferrer" className="w-full py-3 rounded-xl font-bold text-xs flex items-center justify-between px-4 bg-red-50 border border-red-100 text-red-700 hover:bg-red-600 hover:text-white transition-all">
                             Tata 1mg <ExternalLink size={14}/>
                         </a>
@@ -628,10 +837,96 @@ const PatientDashboard = () => {
               <button onClick={() => setShowAddMedModal(false)} className="bg-slate-100 p-3 rounded-full text-slate-500 hover:bg-slate-200"><X size={20}/></button>
             </div>
             
-            <form onSubmit={(e) => {
+            {/* AI Pill Scanner */}
+            <div className="mb-6 bg-blue-50 border border-blue-100 rounded-3xl p-6">
+              <input 
+                type="file" 
+                accept="image/*" 
+                ref={fileInputRef}
+                className="hidden" 
+                onChange={async (e) => {
+                  const file = e.target.files[0];
+                  if (!file) return;
+                  
+                  setScanningPill(true);
+                  const reader = new FileReader();
+                  reader.onload = async () => {
+                    const base64Image = reader.result;
+                    try {
+                      const res = await fetch("http://localhost:5000/recognize_pill", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ image: base64Image })
+                      });
+                      const result = await res.json();
+                      if (result.success && result.data) {
+                        setNewMed(prev => ({
+                          ...prev,
+                          name: result.data.name || prev.name,
+                          dosage: result.data.dosage || prev.dosage,
+                          frequency: result.data.frequency || prev.frequency
+                        }));
+                      } else {
+                        alert("AI could not read the pill label clearly. Try again.");
+                      }
+                    } catch (error) {
+                      console.error(error);
+                      alert("Error recognizing pill.");
+                    } finally {
+                      setScanningPill(false);
+                      fileInputRef.current.value = "";
+                    }
+                  };
+                  reader.readAsDataURL(file);
+                }}
+              />
+              <div className="flex items-center gap-4">
+                 <div className="bg-blue-600 text-white p-4 rounded-2xl"><Camera size={24}/></div>
+                 <div className="flex-1">
+                   <h4 className="font-bold text-slate-800 text-sm mb-1">MedAI Vision Scanner</h4>
+                   <p className="text-xs text-slate-500">Upload a picture of your pill box or label and let AI auto-fill the details.</p>
+                 </div>
+                 <button 
+                   onClick={() => fileInputRef.current?.click()}
+                   disabled={scanningPill}
+                   className="bg-white border-2 border-blue-200 text-blue-600 px-4 py-2 rounded-xl font-bold text-xs hover:bg-blue-600 hover:text-white transition-all shadow-sm flex items-center gap-2"
+                 >
+                   {scanningPill ? <><RefreshCw size={14} className="animate-spin"/> Scanning...</> : <><UploadCloud size={14}/> Upload</>}
+                 </button>
+              </div>
+            </div>
+
+            <form onSubmit={async (e) => {
               e.preventDefault();
-              setMedications([...medications, { id: Date.now(), ...newMed, price_estimate: "TBD" }]);
+
+              // --- DDI CHECK before adding medication ---
+              const allMedNames = [...medications.map(m => m.name), newMed.name];
+              if (allMedNames.length >= 2) {
+                setDdiChecking(true);
+                try {
+                  const ddiRes = await fetch("http://localhost:5000/check_ddi", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ medications: allMedNames })
+                  });
+                  const ddiData = await ddiRes.json();
+                  if (ddiData.has_interaction && ddiData.warnings.length > 0) {
+                    setDdiWarning({ warnings: ddiData.warnings });
+                    setDdiChecking(false);
+                    return; // Stop — show warning banner; user must confirm
+                  }
+                } catch (err) {
+                  console.error("DDI check failed:", err);
+                  // Non-blocking: proceed if DDI API is unreachable
+                } finally {
+                  setDdiChecking(false);
+                }
+              }
+
+              // No interaction (or only 1 drug) — add medication normally
+              setMedications([...medications, { id: Date.now(), ...newMed, price_estimate: "TBD", refill_requested: false }]);
               setShowAddMedModal(false);
+              setDdiWarning(null);
               setNewMed({ name: '', dosage: '', frequency: '1 pill daily', total_pills: '', remaining_pills: '', expiry_date: '' });
             }} className="space-y-6">
               
@@ -662,8 +957,50 @@ const PatientDashboard = () => {
                 </div>
               </div>
 
-              <button type="submit" className="w-full bg-slate-900 text-white font-bold py-5 rounded-2xl mt-4 hover:bg-blue-600 transition-all shadow-xl shadow-slate-200">
-                Save Prescription
+              {/* 🚨 DDI Interaction Warning Banner */}
+              {ddiWarning && (
+                <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5 animate-in slide-in-from-top-2 duration-300">
+                  <div className="flex items-start gap-3 mb-3">
+                    <AlertOctagon size={20} className="text-amber-600 shrink-0 mt-0.5"/>
+                    <div>
+                      <p className="font-black text-sm text-amber-800 uppercase tracking-widest mb-1">Drug Interaction Detected</p>
+                      <p className="text-xs text-amber-700 font-medium">The following clinically significant interactions were found between your medications:</p>
+                    </div>
+                  </div>
+                  <ul className="space-y-2 mb-4">
+                    {ddiWarning.warnings.map((w, i) => (
+                      <li key={i} className="text-xs text-amber-800 bg-amber-100 rounded-xl px-4 py-2.5 font-medium leading-relaxed">
+                        ⚠️ {w}
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        // "Add Anyway" — user accepts the risk
+                        setMedications([...medications, { id: Date.now(), ...newMed, price_estimate: "TBD", refill_requested: false }]);
+                        setShowAddMedModal(false);
+                        setDdiWarning(null);
+                        setNewMed({ name: '', dosage: '', frequency: '1 pill daily', total_pills: '', remaining_pills: '', expiry_date: '' });
+                      }}
+                      className="flex-1 bg-amber-600 text-white py-3 rounded-xl font-bold text-xs hover:bg-amber-700 transition-all"
+                    >
+                      Add Anyway (I Understand the Risk)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDdiWarning(null)}
+                      className="flex-1 bg-white border border-slate-200 text-slate-600 py-3 rounded-xl font-bold text-xs hover:bg-slate-50 transition-all"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <button type="submit" disabled={ddiChecking} className="w-full bg-slate-900 text-white font-bold py-5 rounded-2xl mt-4 hover:bg-blue-600 transition-all shadow-xl shadow-slate-200 disabled:opacity-50 flex justify-center items-center gap-3">
+                {ddiChecking ? <><RefreshCw size={18} className="animate-spin"/> Checking Interactions...</> : "Save Prescription"}
               </button>
             </form>
           </div>

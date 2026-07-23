@@ -14,6 +14,11 @@ export default function DoctorDashboard() {
   const [doctorNotes, setDoctorNotes] = useState("");
   const [isVerifying, setIsVerifying] = useState(false);
   const [hasReviewed, setHasReviewed] = useState(false);
+  const [activeTab, setActiveTab] = useState("triage");
+  const [refills, setRefills] = useState([
+    { id: 101, patient_name: "Rahul Sharma", patient_id: "P-8924", medicine: "Metformin 500mg", requested_at: new Date().toISOString(), status: "Pending" },
+    { id: 102, patient_name: "Meera Joshi", patient_id: "P-3211", medicine: "Amlodipine 5mg", requested_at: new Date(Date.now() - 3600000).toISOString(), status: "Pending" }
+  ]);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -99,9 +104,18 @@ export default function DoctorDashboard() {
         </div>
 
         <nav className="flex-1 space-y-2">
-          <button className="w-full flex items-center justify-between p-4 rounded-2xl bg-white text-blue-600 shadow-sm border border-slate-200 font-bold text-sm">
+          <button onClick={() => setActiveTab("triage")} className={`w-full flex items-center justify-between p-4 rounded-2xl font-bold text-sm ${activeTab === 'triage' ? 'bg-white text-blue-600 shadow-sm border border-slate-200' : 'text-slate-400 hover:bg-slate-100 hover:text-slate-600'}`}>
             <div className="flex items-center gap-3"><LayoutDashboard size={20}/> Triage Queue</div>
             <span className="bg-blue-100 text-blue-600 px-2 py-0.5 rounded-lg text-[10px]">{reports.length}</span>
+          </button>
+          <button onClick={() => setActiveTab("refills")} className={`w-full flex items-center justify-between p-4 rounded-2xl font-bold text-sm ${activeTab === 'refills' ? 'bg-white text-blue-600 shadow-sm border border-slate-200' : 'text-slate-400 hover:bg-slate-100 hover:text-slate-600'}`}>
+            <div className="flex items-center gap-3">
+               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-pill"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg>
+               Rx Refills
+            </div>
+            {refills.filter(r => r.status === 'Pending').length > 0 && (
+              <span className="bg-red-100 text-red-600 px-2 py-0.5 rounded-lg text-[10px]">{refills.filter(r => r.status === 'Pending').length}</span>
+            )}
           </button>
         </nav>
 
@@ -117,6 +131,7 @@ export default function DoctorDashboard() {
           <p className="text-slate-400 tracking-wide uppercase text-[10px] font-bold">Clinical Oversight & AI Verification</p>
         </header>
 
+        {activeTab === "triage" && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
           
           {/* 📋 LEFT: PATIENT QUEUE */}
@@ -265,6 +280,47 @@ export default function DoctorDashboard() {
           </div>
 
         </div>
+        )}
+
+        {activeTab === "refills" && (
+          <div className="animate-in slide-in-from-bottom-8 duration-500">
+            <h2 className="serif text-4xl text-slate-800 mb-8 flex items-center gap-3">
+              <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-500 lucide lucide-pill"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg>
+              Prescription Refill Requests
+            </h2>
+            
+            <div className="grid gap-6">
+              {refills.length === 0 ? (
+                <p className="text-slate-400 font-medium">No pending refill requests.</p>
+              ) : refills.map(req => (
+                <div key={req.id} className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-xl flex flex-col md:flex-row items-center justify-between gap-6">
+                  <div>
+                    <div className="flex items-center gap-3 mb-2">
+                      <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${req.status === 'Pending' ? 'bg-orange-50 text-orange-600' : 'bg-emerald-50 text-emerald-600'}`}>{req.status}</span>
+                      <span className="text-xs text-slate-400 font-bold">{new Date(req.requested_at).toLocaleString()}</span>
+                    </div>
+                    <h3 className="serif text-3xl text-slate-900">{req.medicine}</h3>
+                    <p className="text-slate-500 font-bold text-sm mt-1">Patient: {req.patient_name} <span className="opacity-50">({req.patient_id})</span></p>
+                  </div>
+                  
+                  {req.status === 'Pending' ? (
+                    <button 
+                      onClick={() => setRefills(refills.map(r => r.id === req.id ? { ...r, status: "Approved" } : r))}
+                      className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-bold flex items-center gap-3 shadow-lg hover:bg-blue-500 transition-all whitespace-nowrap"
+                    >
+                      <CheckCircle size={18}/> Approve 30-Day Refill
+                    </button>
+                  ) : (
+                    <div className="bg-emerald-50 text-emerald-700 px-8 py-4 rounded-2xl font-bold border border-emerald-100 flex items-center gap-2">
+                       <ShieldCheck size={18}/> Digitally Signed
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
       </main>
     </div>
   );

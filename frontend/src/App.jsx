@@ -7,6 +7,7 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import PatientDashboard from "./pages/PatientDashboard";
 import DoctorDashboard from "./pages/DoctorDashboard";
+import CaregiverDashboard from "./pages/CaregiverDashboard";
 
 // Component Imports
 import ProtectedRoute from "./components/ProtectedRoute"; // 👈 Ensure this name matches exactly
@@ -37,6 +38,16 @@ export default function App() {
           element={
             <ProtectedRoute allowedRole="doctor">
               <DoctorDashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* 🔐 Protected Caregiver Route (Using general protected route for demo) */}
+        <Route
+          path="/caregiver"
+          element={
+            <ProtectedRoute allowedRole="patient">
+              <CaregiverDashboard />
             </ProtectedRoute>
           }
         />
