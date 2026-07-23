@@ -1,24 +1,27 @@
+import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 
 // Page Imports
-import Home from "./pages/Home"; // 👈 1. Import the new Home page
+import Home from "./pages/Home"; 
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import PatientDashboard from "./pages/PatientDashboard";
 import DoctorDashboard from "./pages/DoctorDashboard";
-import ProtectedRoute from "./components/ProtectedRoute";
+
+// Component Imports
+import ProtectedRoute from "./components/ProtectedRoute"; // 👈 Ensure this name matches exactly
+import Chatbot from "./components/Chatbot"; // Global AI Assistant
 
 export default function App() {
   return (
     <Router>
-      {/* 🔷 ROUTES */}
       <Routes>
-        {/* Public Routes */}
-        <Route path="/" element={<Home />} /> {/* 👈 2. Set root to Home */}
+        {/* 🟢 Public Routes */}
+        <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
 
-        {/* 👇 PROTECTED ROUTE: PATIENT (100% Untouched) */}
+        {/* 🔐 Protected Patient Route */}
         <Route
           path="/patient"
           element={
@@ -28,7 +31,7 @@ export default function App() {
           }
         />
 
-        {/* 👇 PROTECTED ROUTE: DOCTOR (100% Untouched) */}
+        {/* 🔐 Protected Doctor Route */}
         <Route
           path="/doctor"
           element={
@@ -38,6 +41,9 @@ export default function App() {
           }
         />
       </Routes>
+
+      {/* 🤖 GLOBAL CHATBOT - Stays visible on all pages */}
+      <Chatbot /> 
     </Router>
   );
 }

@@ -1,3 +1,4 @@
+import os
 import requests
 import joblib
 import numpy as np
@@ -26,8 +27,8 @@ risk_mapping = {0: "HIGH", 1: "LOW", 2: "MODERATE"}
 # ==========================================
 # 2. SETUP GEMINI
 # ==========================================
-# 👇 PASTE YOUR NEW API KEY HERE
-GEMINI_API_KEY = "AIzaSyBsckop5gIJ9P8breDqJGMdqso4cwqDnrw"
+# 👇 Reads from .env or environment. Hardcoded key is a local dev fallback.
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", " ")
 
 def ask_gemini_advanced(prompt):
     # Tests the most reliable active API endpoints in order
@@ -106,12 +107,12 @@ def predict():
         YOU MUST RETURN ONLY VALID JSON MATCHING THIS EXACT STRUCTURE:
         {{
             "vitals_analysis": {{
-                "hr_note": "Explain the heart rate clearly (e.g., 'Heart rate is 73 BPM, which is a healthy resting rate indicating good cardiovascular stability.').",
+                "hr_note": "Explain the heart rate clearly.",
                 "spo2_note": "Explain the oxygen level clearly.",
                 "bp_note": "Explain the blood pressure clearly.",
                 "steps_note": "Explain the activity level clearly."
             }},
-            "simple_summary": "A detailed 3-4 sentence paragraph explaining the overall health status, what these vitals mean combined, and ending with 'Please note: This is an AI-generated assessment and should be verified by your physician.'",
+            "simple_summary": "A detailed 3-4 sentence paragraph explaining the overall health status...",
             "key_factors": [
                 "Clear observation 1", 
                 "Clear observation 2", 
@@ -119,7 +120,7 @@ def predict():
             ],
             "risk_forecast": "What the patient/doctor should watch out for over the next 12-24 hours.",
             "action_plan": [
-                "Actionable, easy-to-understand lifestyle or medical step 1", 
+                "Actionable step 1", 
                 "Actionable step 2", 
                 "Actionable step 3"
             ],
@@ -166,10 +167,10 @@ def predict():
                     "bp_note": f"Blood Pressure recorded at {data['systolic_bp']}/{data['diastolic_bp']}.",
                     "steps_note": f"Activity recorded at {data['steps']} steps."
                 },
-                "simple_summary": f"Vitals processed. Machine Learning classified risk as {local_risk}. Cloud AI deep analysis is temporarily offline. Please note: This is an AI-generated assessment and should be verified by your physician.",
+                "simple_summary": f"Vitals processed. Machine Learning classified risk as {local_risk}. Cloud AI deep analysis is temporarily offline.",
                 "key_factors": ["Vitals captured", f"ML Risk: {local_risk}", "Pending Physician Review"],
                 "risk_forecast": "Monitor vitals for any sudden changes.",
-                "action_plan": ["Review vitals manually", "Ensure patient stability", "Consult a physician if symptomatic"],
+                "action_plan": ["Review vitals manually", "Ensure patient stability"],
                 "hospital_recommendation": "General Clinic"
             }
 
@@ -184,5 +185,111 @@ def predict():
         print(f"❌ Server Error: {e}")
         return jsonify({"success": False, "error": str(e)}), 500
 
+# ==========================================
+# 3. VOICE CHATBOT ROUTE (CORS BULLETPROOFED)
+# ==========================================
+# Localized fallback strings reused across all error branches
+CHAT_FALLBACKS = {
+    "en": "I am experiencing network issues. Please rely on the Live Triage dashboard.",
+    "hi": "मुझे नेटवर्क की समस्या हो रही है। कृपया लाइव ट्राइएज डैशबोर्ड देखें।",
+    "mr": "मला नेटवर्क समस्या येत आहे. कृपया लाइव्ह ट्राइएज डॅशबोर्ड तपासा."
+}
+
+CHAT_MODELS = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash-latest"]
+
+@app.route('/chat', methods=['POST', 'OPTIONS'])
+def chat():
+    # ✅ Instantly approve the browser's CORS preflight check
+    if request.method == 'OPTIONS':
+        return jsonify({"status": "CORS approved"}), 200
+
+    try:
+        data = request.json
+        user_msg = data.get('message', '')
+        lang = data.get('language', 'en')
+
+        # 🩺 Extract live vitals from the request (sent by PatientDashboard)
+        vitals = data.get('vitals', None)
+
+        # Build the Live Patient Dossier block (only when vitals are present)
+        if vitals:
+            hr  = vitals.get('heart_rate', 'N/A')
+            spo2 = vitals.get('spo2', 'N/A')
+            sys_bp = vitals.get('systolic_bp', 'N/A')
+            dia_bp = vitals.get('diastolic_bp', 'N/A')
+            steps = vitals.get('steps', 'N/A')
+            vitals_block = f"""--- LIVE PATIENT DOSSIER (confidential, do not repeat verbatim) ---
+Heart Rate   : {hr} BPM
+SpO2         : {spo2}%
+Blood Pressure: {sys_bp}/{dia_bp} mmHg
+Steps Today  : {steps}
+
+EMERGENCY TRIGGERS — if ANY of these are true, your FIRST sentence must tell the patient to open the Emergency Map immediately and name the nearest hospital (e.g., Noble Hospital, Ruby Hall Clinic):
+- Heart Rate > 130 or < 40 BPM
+- SpO2 < 90%
+- Systolic BP > 180 or < 80 mmHg
+---"""
+        else:
+            vitals_block = "(No live vitals available for this session.)"
+
+        # 🤖 Final prompt — patient dossier injected before the user's question
+        prompt = f"""You are MedAI, a high-class clinical voice assistant. Follow these rules strictly:
+
+PERSONA RULES:
+1. EMPATHY FIRST — Your opening sentence must always warmly acknowledge the user's discomfort before anything else.
+2. ZERO MEDICATIONS — You are absolutely forbidden from naming, suggesting, or implying any medication whatsoever — including paracetamol, ibuprofen, aspirin, antihistamines, cough syrups, or any OTC drug. Violation of this rule is not permitted under any circumstance.
+3. SAFE COMFORT ONLY — Offer only 1 or 2 non-medical comfort measures relevant to the symptom (e.g., hydration, rest, cold compress, steam inhalation, deep breathing, warm compress, elevation). Never suggest a clinical procedure.
+4. SMART ROUTING — If symptoms are mild, tell the user to rest and monitor. If symptoms are severe (chest pain, extreme fever, difficulty breathing, loss of consciousness, severe bleeding) OR if the live vitals dossier shows an emergency trigger, instruct the user to open the Emergency Map on their dashboard to find the nearest hospital — mention Ruby Hall Clinic or Noble Hospital by name.
+5. CONCISE — Your entire response must be 3 sentences or fewer so it is natural to listen to via Text-to-Speech.
+6. LANGUAGE ENFORCEMENT — Detect the incoming lang variable ("{lang}"). 
+   - If lang is "hi", you MUST output the entire response in native Hindi (Devanagari script). 
+   - If lang is "mr", you MUST output the entire response in native Marathi (Devanagari script). 
+   - Under NO circumstances should you use Latin characters (Hinglish/Marathenglish) or include an English translation. This is critical for the browser's Text-to-Speech engine.
+   - Do NOT use bullet points, markdown, or numbered lists — plain flowing prose only.
+
+{vitals_block}
+
+User query: {user_msg}"""
+
+
+        payload = {"contents": [{"parts": [{"text": prompt}]}]}
+        headers = {"Content-Type": "application/json"}
+
+        # 🔄 Model fallback cascade — tries each model before giving up
+        for model_name in CHAT_MODELS:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={GEMINI_API_KEY}"
+            try:
+                response = requests.post(url, headers=headers, json=payload, timeout=10)
+
+                if response.status_code == 200:
+                    ai_text = response.json()['candidates'][0]['content']['parts'][0]['text']
+                    print(f"   ✅ Chat answered by: {model_name}")
+                    return jsonify({"chat_response": ai_text.strip()})
+
+                # 🛑 Rate limit or bad key — no point trying further, return fallback immediately
+                if response.status_code in (429, 403):
+                    print(f"   ⚠️ Chat quota/key error ({response.status_code}) on {model_name}. Returning fallback.")
+                    return jsonify({"chat_response": CHAT_FALLBACKS.get(lang, CHAT_FALLBACKS["en"])})
+
+                print(f"   ⚠️ {model_name} returned {response.status_code}. Trying next model...")
+
+            except requests.exceptions.Timeout:
+                print(f"   ⏱️ Timeout on {model_name}. Trying next model...")
+                continue
+            except Exception as e:
+                print(f"   ❌ Network error on {model_name}: {e}. Trying next model...")
+                continue
+
+        # All models exhausted → localized fallback
+        print("   ❌ All chat models failed. Returning localized fallback.")
+        return jsonify({"chat_response": CHAT_FALLBACKS.get(lang, CHAT_FALLBACKS["en"])})
+
+    except Exception as e:
+        print(f"❌ Chat Route Error: {e}")
+        return jsonify({"chat_response": CHAT_FALLBACKS.get("en")}), 200
+
+# ==========================================
+# 4. START SERVER (MUST BE AT THE VERY BOTTOM)
+# ==========================================
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
