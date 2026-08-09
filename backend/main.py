@@ -47,7 +47,6 @@ risk_mapping = {0: "HIGH", 1: "LOW", 2: "MODERATE"}
 # Enable 2-Step Verification on Gmail, then generate an App Password:
 # Google Account → Security → App passwords → generate one for 'Mail'
 # ==========================================
-<<<<<<< HEAD
 GMAIL_SENDER   = os.environ.get("GMAIL_SENDER", "").strip()   # your Gmail address
 GMAIL_APP_PASS = os.environ.get("GMAIL_APP_PASS", "").strip() # 16-char App Password (no spaces)
 ALERT_EMAIL_TO = os.environ.get("ALERT_EMAIL_TO", "").strip() # where to send the alert (can be same Gmail)
@@ -139,12 +138,9 @@ def test_sos():
 # ==========================================
 # 3. SETUP GEMINI
 # ==========================================
-# 👇 Reads from .env or environment. Hardcoded key is a local dev fallback.
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "AIzaSyCLj1XuF_AEXdKYUvGMv2JEWFR_ngBQniw ").strip()
-=======
-# 👇 PASTE YOUR NEW API KEY HERE
-GEMINI_API_KEY = ""
->>>>>>> 23bdb21b22273f2478f84eedd6f61986c3c24d6e
+# 👇 Reads from .env or environment.
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "").strip()
+
 
 def ask_gemini_advanced(prompt):
     # Tests the most reliable active API endpoints in order
@@ -203,7 +199,28 @@ def predict():
             pred = model.predict(features_df)[0]
             local_risk = risk_mapping[pred]
 
-        # --- STEP 2: Deep Clinical Reasoning (BALANCED PATIENT-DOCTOR PROMPT) ---
+        # Get patient profile if provided
+        profile = data.get("patient_profile")
+        profile_str = ""
+        if profile:
+            profile_str = f"""
+            Patient Health Profile:
+            - Age: {profile.get('age', 'N/A')} years
+            - Height: {profile.get('height', 'N/A')} cm
+            - Weight: {profile.get('weight', 'N/A')} kg
+            - BMI: {profile.get('bmi', 'N/A')}
+            - Athlete Status: {"Athlete" if profile.get('athlete_status') else "Non-Athlete"}
+            - Sport: {profile.get('sport_type', 'N/A')} (if Athlete)
+            - Training Frequency: {profile.get('training_frequency', 'N/A')} (if Athlete)
+            - Resting Heart Rate: {profile.get('resting_heart_rate', 'N/A')} BPM
+            - Medical History: {", ".join(profile.get('medical_history', [])) if isinstance(profile.get('medical_history'), list) else profile.get('medical_history', 'None')}
+            - Smoking: {"Yes" if profile.get('smoking') else "No"}
+            - Alcohol: {"Yes" if profile.get('alcohol') else "No"}
+            """
+        else:
+            profile_str = "Patient Health Profile: Not provided. Assume standard adult clinical baselines."
+
+        # --- STEP 2: Deep Clinical Reasoning (BALANCED PATIENT-DOCTOR PROMPT WITH HEALTH PROFILE DETAILS) ---
         prompt = f"""
         Act as a Collaborative Medical AI Assistant communicating clearly to BOTH a reviewing doctor and the patient.
         
@@ -214,18 +231,27 @@ def predict():
         - Activity (Steps): {data['steps']}
         Base ML Triage Flag: {local_risk}
 
+        {profile_str}
+
         STRICT TONE GUIDELINES:
         - The tone must be professional, empathetic, and explanatory.
         - Explain WHAT the numbers mean in a way a patient understands, but maintain the clinical accuracy a doctor expects.
         - DO NOT use one-sentence answers. Provide a thorough 3-4 sentence paragraph for the 'simple_summary'.
         - You MUST clearly state in the summary that this is an AI-generated assessment.
 
+        PERSONALIZATION RULES:
+        - Carefully analyze the vitals in context of the Patient Health Profile.
+        - Example 1 (Athlete): If the patient is an athlete with a low resting HR (e.g. 56 BPM) and their current HR is 112 BPM, explain: "The current heart rate is elevated compared to your resting value but falls within the expected range for an athlete after physical activity." and the risk should be evaluated as Low Risk (or matching the ML flag).
+        - Example 2 (Non-Athlete): If the patient is a non-athlete with a resting HR of 80 BPM and their current HR is 112 BPM, explain: "Your heart rate is considerably above your normal resting rate. Combined with your profile, additional monitoring is recommended." and flag it accordingly.
+        - Factor in medical history (e.g. Hypertension history means their normal BP baseline may be elevated; Asthma history means their normal SpO2 may have a lower threshold).
+        - Factor in smoking and alcohol usage in the risk forecasting.
+
         YOU MUST RETURN ONLY VALID JSON MATCHING THIS EXACT STRUCTURE:
         {{
             "vitals_analysis": {{
-                "hr_note": "Explain the heart rate clearly.",
-                "spo2_note": "Explain the oxygen level clearly.",
-                "bp_note": "Explain the blood pressure clearly.",
+                "hr_note": "Explain the heart rate clearly relative to their baseline.",
+                "spo2_note": "Explain the oxygen level clearly relative to their baseline.",
+                "bp_note": "Explain the blood pressure clearly relative to their baseline.",
                 "steps_note": "Explain the activity level clearly."
             }},
             "simple_summary": "A detailed 3-4 sentence paragraph explaining the overall health status...",
@@ -240,7 +266,22 @@ def predict():
                 "Actionable step 2", 
                 "Actionable step 3"
             ],
-            "hospital_recommendation": "Specific medical unit or 'Home Monitoring'"
+            "hospital_recommendation": "Specific medical unit or 'Home Monitoring'",
+            "personalized_insights": {{
+                "ai_summary": "Concise risk summary (e.g., Low Risk, Moderate Risk, High Risk)",
+                "prediction_confidence": "Prediction confidence percentage, e.g. 95%",
+                "primary_risk_factors": ["Factor 1", "Factor 2"],
+                "positive_indicators": ["Indicator 1", "Indicator 2"],
+                "personalized_explanation": "A complete explanation of how current vitals align or conflict with their personal baseline (resting HR, BMI, etc.) and lifestyle (athlete, smoker, etc.).",
+                "recommended_actions": ["Action 1", "Action 2"]
+            }},
+            "doctor_summary": {{
+                "current_risk": "e.g. Low, Moderate, High",
+                "heart_rate": "Status relative to baseline (e.g. Normal, Above personal baseline, Below personal baseline)",
+                "blood_pressure": "Status relative to baseline (e.g. Normal, Elevated, High)",
+                "spo2": "Status relative to baseline (e.g. Normal, Slightly Low, Critically Low)",
+                "recommendation": "Concise medical recommendation for the physician."
+            }}
         }}
         """
 
@@ -287,7 +328,22 @@ def predict():
                 "key_factors": ["Vitals captured", f"ML Risk: {local_risk}", "Pending Physician Review"],
                 "risk_forecast": "Monitor vitals for any sudden changes.",
                 "action_plan": ["Review vitals manually", "Ensure patient stability"],
-                "hospital_recommendation": "General Clinic"
+                "hospital_recommendation": "General Clinic",
+                "personalized_insights": {
+                    "ai_summary": f"{local_risk} Risk",
+                    "prediction_confidence": "85% (Fallback Model)",
+                    "primary_risk_factors": ["Pending live AI calibration"],
+                    "positive_indicators": ["Vitals transmission stable"],
+                    "personalized_explanation": f"Patient classified as {local_risk} Risk. Please establish network connection for full health profile baseline analysis.",
+                    "recommended_actions": ["Monitor vitals periodically"]
+                },
+                "doctor_summary": {
+                    "current_risk": local_risk.capitalize(),
+                    "heart_rate": "Pending AI baseline review",
+                    "blood_pressure": "Pending AI baseline review",
+                    "spo2": "Pending AI baseline review",
+                    "recommendation": "Review vitals and history manually."
+                }
             }
 
         # --- STEP 4: Emergency SOS — email goes to THIS USER's emergency contact ---
@@ -317,11 +373,15 @@ def predict():
         return jsonify({"success": False, "error": str(e)}), 500
 
 # ==========================================
-# 4. DRUG-DRUG INTERACTION (DDI) CHECKER — NIH RxNorm API
+# 4. DRUG-DRUG INTERACTION (DDI) CHECKER
+#    Step 1: NIH RxNorm API  - resolves drug name to RxCUI (standard ID)
+#    Step 2: OpenFDA API     - searches FDA drug labels for interaction text
+#    Note: NIH /interaction/list endpoint was deprecated (returns 404).
+#          OpenFDA is the current US government source for DDI label data.
 # ==========================================
 @app.route('/check_ddi', methods=['POST', 'OPTIONS'])
 def check_ddi():
-    """Check for drug-drug interactions using the NIH RxNorm API.
+    """Check for drug-drug interactions via NIH RxNorm + OpenFDA.
     Request : { "medications": ["Aspirin", "Warfarin"] }
     Response: { "has_interaction": bool, "warnings": [str, ...] }
     """
@@ -349,49 +409,76 @@ def check_ddi():
                     rxcui_list = id_group.get("rxnormId", [])
                     if rxcui_list:
                         rxcuis.append(rxcui_list[0])
-                        print(f"   ✅ RxCUI for '{name}': {rxcui_list[0]}")
+                        print(f"   RxCUI for '{name}': {rxcui_list[0]}")
                     else:
-                        print(f"   ⚠️  No RxCUI found for '{name}'")
+                        print(f"   No RxCUI found for '{name}'")
             except requests.exceptions.RequestException as e:
-                print(f"   ❌ RxNorm lookup failed for '{name}': {e}")
+                print(f"   RxNorm lookup failed for '{name}': {e}")
 
         if len(rxcuis) < 2:
-            # Not enough CUIs resolved — cannot check interactions
             return jsonify({
                 "has_interaction": False,
                 "warnings": [],
                 "info": "Could not resolve enough drug IDs from RxNorm to check interactions."
             })
 
-        # --- Step 2: Query the interaction list endpoint ---
-        rxcui_param = "+".join(rxcuis)
-        try:
-            inter_r = requests.get(
-                "https://rxnav.nlm.nih.gov/REST/interaction/list.json",
-                params={"rxcuis": rxcui_param},
-                timeout=10
-            )
-        except requests.exceptions.RequestException as e:
-            print(f"   ❌ RxNorm interaction API unreachable: {e}")
-            return jsonify({
-                "has_interaction": False,
-                "warnings": [],
-                "error": "RxNorm Interaction API unavailable. Unable to verify interactions."
-            })
-
+        # --- Step 2: OpenFDA drug label search for interaction text ---
+        # Searches official FDA prescribing labels where one drug mentions another.
         warnings = []
-        if inter_r.status_code == 200:
-            full_data = inter_r.json()
-            groups = full_data.get("fullInteractionTypeGroup", [])
-            for group in groups:
-                for itype in group.get("fullInteractionType", []):
-                    for pair in itype.get("interactionPair", []):
-                        desc = pair.get("description", "")
-                        if desc:
-                            warnings.append(desc)
+        for i, primary_name in enumerate(med_names):
+            other_drugs = [med_names[j] for j in range(len(med_names)) if j != i]
+            for other_name in other_drugs:
+                try:
+                    fda_r = requests.get(
+                        "https://api.fda.gov/drug/label.json",
+                        params={
+                            "search": "openfda.generic_name:" + primary_name + " AND drug_interactions:" + other_name,
+                            "limit": 3
+                        },
+                        timeout=10
+                    )
+                    if fda_r.status_code == 200:
+                        fda_data = fda_r.json()
+                        results = fda_data.get("results", [])
+                        for res in results:
+                            interaction_texts = res.get("drug_interactions", [])
+                            for text in interaction_texts:
+                                if other_name.lower() in text.lower():
+                                    sentences = text.split(".")
+                                    relevant = [s.strip() for s in sentences if other_name.lower() in s.lower()]
+                                    if relevant:
+                                        warning = primary_name + " + " + other_name + ": " + relevant[0][:250] + "."
+                                        if warning not in warnings:
+                                            warnings.append(warning)
+                    elif fda_r.status_code != 404:
+                        print("   OpenFDA returned", fda_r.status_code, "for", primary_name, "/", other_name)
+                except requests.exceptions.RequestException as e:
+                    print("   OpenFDA lookup failed for", primary_name, "vs", other_name, ":", e)
+
+        # --- Step 3: Broader cross-check if targeted search found nothing ---
+        if not warnings:
+            try:
+                broad_r = requests.get(
+                    "https://api.fda.gov/drug/label.json",
+                    params={"search": "drug_interactions:" + med_names[0], "limit": 5},
+                    timeout=10
+                )
+                if broad_r.status_code == 200:
+                    for res in broad_r.json().get("results", []):
+                        for text in res.get("drug_interactions", []):
+                            for other in med_names[1:]:
+                                if other.lower() in text.lower():
+                                    sentences = text.split(".")
+                                    relevant = [s.strip() for s in sentences if other.lower() in s.lower()]
+                                    if relevant:
+                                        warning = med_names[0] + " + " + other + ": " + relevant[0][:250] + "."
+                                        if warning not in warnings:
+                                            warnings.append(warning)
+            except Exception as e:
+                print("   Broad DDI search failed:", e)
 
         has_interaction = len(warnings) > 0
-        print(f"   {'🚨' if has_interaction else '✅'} DDI Check: {len(warnings)} interaction(s) found for RxCUIs {rxcuis}")
+        print("   DDI Result:", len(warnings), "interaction(s) found. RxCUIs:", rxcuis)
 
         return jsonify({
             "has_interaction": has_interaction,
@@ -399,7 +486,7 @@ def check_ddi():
         })
 
     except Exception as e:
-        print(f"❌ DDI Route Error: {e}")
+        print("DDI Route Error:", e)
         return jsonify({
             "has_interaction": False,
             "warnings": [],
@@ -582,6 +669,125 @@ def recognize_pill():
 # 7. PILL RECOGNITION (VISION) ROUTE — unchanged
 # (route code above, section header renumbered)
 # ==========================================
+
+# ==========================================
+# 9. AI DIET EXPLANATION PROXY ROUTE
+# ==========================================
+@app.route('/diet_explain', methods=['POST', 'OPTIONS'])
+def diet_explain():
+    if request.method == 'OPTIONS':
+        return jsonify({"status": "CORS approved"}), 200
+
+    try:
+        data = request.json
+        diet_plan = data.get('diet_plan', {})
+        patient_profile = data.get('patient_profile', {})
+        vitals = data.get('vitals', {})
+        user_inputs = data.get('user_inputs', {})
+
+        # Extract values for easier prompt generation
+        age = patient_profile.get('age', 'N/A')
+        height = patient_profile.get('height', 'N/A')
+        weight = patient_profile.get('weight', 'N/A')
+        bmi = patient_profile.get('bmi', 'N/A')
+        athlete_status = "Athlete" if patient_profile.get('athlete_status') else "Non-Athlete"
+        sport = patient_profile.get('sport_type', 'N/A')
+        training = patient_profile.get('training_frequency', 'N/A')
+        
+        # Format history string
+        hist_list = patient_profile.get('medical_history', [])
+        if isinstance(hist_list, list):
+            history = ", ".join(hist_list)
+        else:
+            history = str(hist_list)
+        if not history.strip():
+            history = "None"
+        
+        systolic = vitals.get('systolic_bp', 'N/A')
+        diastolic = vitals.get('diastolic_bp', 'N/A')
+        hr = vitals.get('heart_rate', 'N/A')
+        steps = vitals.get('steps', 'N/A')
+
+        preference = user_inputs.get('preference', 'Vegetarian')
+        allergies = user_inputs.get('allergies', 'None')
+        goal = user_inputs.get('goal', 'Maintain Weight')
+        budget = user_inputs.get('budget', 'Medium')
+
+        calories = diet_plan.get('calories', 'N/A')
+        protein = diet_plan.get('protein', 'N/A')
+        carbs = diet_plan.get('carbohydrates', 'N/A')
+        fat = diet_plan.get('fat', 'N/A')
+        water = diet_plan.get('water', 'N/A')
+        meals = diet_plan.get('meals', {})
+
+        breakfast = meals.get('breakfast', 'N/A')
+        morning_snack = meals.get('morning_snack', 'N/A')
+        lunch = meals.get('lunch', 'N/A')
+        evening_snack = meals.get('evening_snack', 'N/A')
+        dinner = meals.get('dinner', 'N/A')
+        
+        rules_matched = ", ".join([f"{r.get('rule')} ({r.get('source')})" for r in diet_plan.get('rules_matched', [])])
+
+        prompt = f"""You are MedAI, an expert clinical nutritionist assistant.
+Your task is to review a pre-calculated, deterministic diet plan generated for a patient and provide a warm, encouraging, and clinically-justified explanation.
+
+CRITICAL RULES:
+1. DO NOT change the diet plan.
+2. DO NOT change the calorie, protein, carbohydrate, fat, or water targets.
+3. DO NOT alter the recommended meals (Breakfast, Snacks, Lunch, Dinner).
+4. Explain WHY this specific diet was generated by our Clinical Decision Support System. Explicitly reference the clinical guidelines matched (e.g., DASH/AHA for blood pressure, ADA for diabetes, ISSN for athletes, WHO for BMI).
+5. Personalize your explanation so it feels relevant to their age ({age}), goal ({goal}), medical history ({history}), activity level ({steps} steps), and athlete status ({athlete_status}).
+6. Format your response ONLY as a valid JSON object matching this structure:
+{{
+    "explanation": "Write a 3-4 sentence paragraph that warmly explains why this clinical plan was selected, what guidelines (WHO, AHA, NHLBI, ADA, ACSM, ISSN, ICMR-NIN) it follows, and how it will help them reach their goal. Use markdown in this string for bolding/emphasis if desired.",
+    "personalized_tips": [
+        "A tip about hydration or meal timing aligned with their active hours or steps.",
+        "A tip specific to their goal ({goal}) or preference ({preference}).",
+        "A specific advisory tip for their allergies ({allergies}) or medical history ({history})."
+    ]
+}}
+Ensure the output is valid JSON. Return ONLY JSON.
+
+Patient Context:
+- Profile: Age {age}, Height {height}cm, Weight {weight}kg, BMI {bmi}, {athlete_status} (Sport: {sport}, Training: {training}), History: {history}
+- Vitals: BP {systolic}/{diastolic} mmHg, HR {hr} BPM, Steps {steps}
+- Preferences: Preference: {preference}, Allergies: {allergies}, Goal: {goal}, Budget: {budget}
+- Matched Clinical Rules: {rules_matched}
+
+Pre-Calculated Diet Plan:
+- Calories: {calories} kcal | Protein: {protein}g | Carbs: {carbs}g | Fat: {fat}g | Water: {water}L
+- Breakfast: {breakfast}
+- Morning Snack: {morning_snack}
+- Lunch: {lunch}
+- Evening Snack: {evening_snack}
+- Dinner: {dinner}
+"""
+
+        # Call Gemini using model cascade
+        ai_response = ask_gemini_advanced(prompt)
+        if ai_response:
+            clean_text = ai_response.strip()
+            if clean_text.startswith("```json"):
+                clean_text = clean_text[7:]
+            if clean_text.startswith("```"):
+                clean_text = clean_text[3:]
+            if clean_text.endswith("```"):
+                clean_text = clean_text[:-3]
+            clean_text = clean_text.strip()
+
+            start_idx = clean_text.find('{')
+            end_idx = clean_text.rfind('}') + 1
+            if start_idx != -1 and end_idx != -1:
+                clean_text = clean_text[start_idx:end_idx]
+
+            parsed_data = json.loads(clean_text)
+            return jsonify({"success": True, "data": parsed_data})
+        else:
+            return jsonify({"success": False, "error": "Gemini generation failed"}), 500
+
+    except Exception as e:
+        print(f"❌ Diet Explanation API Error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 200
 
 # ==========================================
 # 8. START SERVER (MUST BE AT THE VERY BOTTOM)

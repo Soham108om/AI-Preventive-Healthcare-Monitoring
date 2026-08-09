@@ -16,8 +16,7 @@ export default function DoctorDashboard() {
   const [hasReviewed, setHasReviewed] = useState(false);
   const [activeTab, setActiveTab] = useState("triage");
   const [refills, setRefills] = useState([
-    { id: 101, patient_name: "Rahul Sharma", patient_id: "P-8924", medicine: "Metformin 500mg", requested_at: new Date().toISOString(), status: "Pending" },
-    { id: 102, patient_name: "Meera Joshi", patient_id: "P-3211", medicine: "Amlodipine 5mg", requested_at: new Date(Date.now() - 3600000).toISOString(), status: "Pending" }
+    
   ]);
   const navigate = useNavigate();
 

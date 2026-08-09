@@ -8,10 +8,14 @@ import Signup from "./pages/Signup";
 import PatientDashboard from "./pages/PatientDashboard";
 import DoctorDashboard from "./pages/DoctorDashboard";
 import CaregiverDashboard from "./pages/CaregiverDashboard";
+import PersonalizedAnalysis from "./pages/PersonalizedAnalysis";
+import DietPlanner from "./pages/DietPlanner";
 
 // Component Imports
 import ProtectedRoute from "./components/ProtectedRoute"; // 👈 Ensure this name matches exactly
 import Chatbot from "./components/Chatbot"; // Global AI Assistant
+
+
 
 export default function App() {
   return (
@@ -31,6 +35,28 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+
+        {/* 🔐 Protected Personalized Analysis Route */}
+        <Route
+          path="/patient/personalized-analysis"
+          element={
+            <ProtectedRoute allowedRole="patient">
+              <PersonalizedAnalysis />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* 🔐 Protected Diet Planner Route */}
+        <Route
+          path="/patient/diet-planner"
+          element={
+            <ProtectedRoute allowedRole="patient">
+              <DietPlanner />
+            </ProtectedRoute>
+          }
+        />
+
+
 
         {/* 🔐 Protected Doctor Route */}
         <Route

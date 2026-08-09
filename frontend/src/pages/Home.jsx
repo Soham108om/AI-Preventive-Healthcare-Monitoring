@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from "react";
+import { Link } from "react-router-dom";
 import {
-  Activity, ShieldCheck, Zap, ArrowRight, HeartPulse,
-  Brain, BarChart3, Check, ChevronRight, Star,
-  Upload, Cpu, Lightbulb, Users, Clock, TrendingUp,
-  Lock, Database, Wifi, Quote, Phone, Calendar
+  Activity, ShieldCheck, Check, Star, ArrowRight, Search,
+  Heart, Brain, Stethoscope, Smile, Sparkles, Layers,
+  ChevronLeft, ChevronRight, Apple, Play, Globe, Mail, Phone,
+  Baby, Lock, Shield, HeartPulse
 } from "lucide-react";
 
 /* ─── Animated Counter ─── */
@@ -33,306 +34,340 @@ function AnimatedCounter({ end, suffix = "", duration = 2000 }) {
 }
 
 /* ─── Scroll Reveal Wrapper ─── */
-function Reveal({ children, delay = 0, style = {} }) {
+function Reveal({ children, delay = 0, className = "" }) {
   const ref = useRef(null);
   const [visible, setVisible] = useState(false);
   useEffect(() => {
     const observer = new IntersectionObserver(([entry]) => {
       if (entry.isIntersecting) { setVisible(true); observer.disconnect(); }
-    }, { threshold: 0.1 });
+    }, { threshold: 0.05 });
     if (ref.current) observer.observe(ref.current);
     return () => observer.disconnect();
   }, []);
   return (
-    <div ref={ref} style={{
-      opacity: visible ? 1 : 0,
-      transform: visible ? "translateY(0)" : "translateY(24px)",
-      transition: `opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1) ${delay}ms, transform 0.8s cubic-bezier(0.16, 1, 0.3, 1) ${delay}ms`,
-      ...style
-    }}>
+    <div
+      ref={ref}
+      className={`transition-all duration-1000 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+        visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+      } ${className}`}
+      style={{ transitionDelay: `${delay}ms` }}
+    >
       {children}
     </div>
   );
 }
 
-/* ─── Main Component ─── */
 export default function Home() {
-  const [pulse, setPulse] = useState(74);
   const [scrolled, setScrolled] = useState(false);
+  const [activeSpecialistIdx, setActiveSpecialistIdx] = useState(0);
 
   useEffect(() => {
-    const iv = setInterval(() => setPulse(72 + Math.round(Math.sin(Date.now() / 1200) * 3)), 1000);
-    const onScroll = () => setScrolled(window.scrollY > 20);
-    window.addEventListener("scroll", onScroll);
-    return () => { clearInterval(iv); window.removeEventListener("scroll", onScroll); };
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 20);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const features = [
-    { icon: <Brain size={24} strokeWidth={2} />, color: "#0F766E", bg: "#CCFBF1", title: "AI Diagnostics", desc: "Advanced neural networks providing instant, second-opinion diagnostic suggestions." },
-    { icon: <HeartPulse size={24} strokeWidth={2} />, color: "#0369A1", bg: "#E0F2FE", title: "Vitals Telemetry", desc: "Continuous patient monitoring with automated clinical alerts for medical staff." },
-    { icon: <Database size={24} strokeWidth={2} />, color: "#6D28D9", bg: "#F3E8FF", title: "Unified Records", desc: "Seamless, secure EHR integration that gives clinicians the full patient history." },
-    { icon: <BarChart3 size={24} strokeWidth={2} />, color: "#B45309", bg: "#FEF3C7", title: "Risk Stratification", desc: "Predictive analytics to anticipate patient deterioration before symptoms appear." },
-    { icon: <Wifi size={24} strokeWidth={2} />, color: "#1D4ED8", bg: "#DBEAFE", title: "Device Integration", desc: "Connects securely with standard medical IoT hardware and smart wearables." },
-    { icon: <Lock size={24} strokeWidth={2} />, color: "#334155", bg: "#F1F5F9", title: "HIPAA Compliant", desc: "Enterprise-grade encryption ensuring patient data privacy and legal compliance." },
+  const services = [
+    {
+      icon: <Heart className="w-6 h-6 text-[#005A51]" />,
+      title: "Cardiology",
+      desc: "Comprehensive heart health monitoring and advanced diagnostic procedures."
+    },
+    {
+      icon: <Baby className="w-6 h-6 text-[#005A51]" />,
+      title: "Pediatrics",
+      desc: "Nurturing care for newborns, children, and adolescents in a gentle environment."
+    },
+    {
+      icon: <Sparkles className="w-6 h-6 text-[#005A51]" />,
+      title: "Dermatology",
+      desc: "Expert treatment for skin, hair, and nail conditions with precision technologies."
+    },
+    {
+      icon: <Smile className="w-6 h-6 text-[#005A51]" />,
+      title: "Dental",
+      desc: "Modern restorative and cosmetic dentistry for a healthy, confident smile."
+    },
+    {
+      icon: <Brain className="w-6 h-6 text-[#005A51]" />,
+      title: "Mental Health",
+      desc: "Compassionate counseling and psychiatric support for emotional wellbeing."
+    },
+    {
+      icon: <Stethoscope className="w-6 h-6 text-[#005A51]" />,
+      title: "General Checkup",
+      desc: "Routine health screenings and preventative care for all ages."
+    }
   ];
 
   const steps = [
-    { icon: <Upload size={24} strokeWidth={2} />, step: "01", title: "Data Ingestion", desc: "Securely upload patient history or sync live vitals from connected clinical devices." },
-    { icon: <Cpu size={24} strokeWidth={2} />, step: "02", title: "AI Analysis", desc: "Our proprietary models cross-reference symptoms with millions of clinical pathways." },
-    { icon: <Lightbulb size={24} strokeWidth={2} />, step: "03", title: "Clinical Action", desc: "Doctors receive prioritized, actionable insights to deliver faster, better care." },
+    {
+      num: 1,
+      title: "Book Appointment",
+      desc: "Select your specialist and a time that fits your schedule via our portal."
+    },
+    {
+      num: 2,
+      title: "Consult Doctor",
+      desc: "Meet your doctor virtually or in-person for a thorough consultation."
+    },
+    {
+      num: 3,
+      title: "Follow-up",
+      desc: "Receive your digital prescription and schedule necessary follow-up care."
+    }
   ];
 
-  const benefits = [
-    { icon: <Clock size={24} strokeWidth={2} />, metric: "73%", label: "Faster Diagnosis", desc: "Reduce wait times in triage and outpatient settings." },
-    { icon: <TrendingUp size={24} strokeWidth={2} />, metric: "4.2x", label: "Better Monitoring", desc: "Proactive care through continuous algorithmic surveillance." },
-    { icon: <Users size={24} strokeWidth={2} />, metric: "58%", label: "Staff Efficiency", desc: "Automate manual charting and routine vital checks." },
-    { icon: <ShieldCheck size={24} strokeWidth={2} />, metric: "99.9%", label: "Uptime", desc: "Hospital-grade reliability you can trust in an emergency." },
+  const specialists = [
+    {
+      name: "Dr. Jonathan Reis",
+      role: "Senior Cardiologist",
+      rating: "4.9",
+      img: "/dr-reis.jpg"
+    },
+    {
+      name: "Dr. Sarah Jenkins",
+      role: "Pediatric Specialist",
+      rating: "4.8",
+      img: "/dr-jenkins.jpg"
+    },
+    {
+      name: "Dr. Michael Chen",
+      role: "Dermatology Head",
+      rating: "5.0",
+      img: "/dr-chen.jpg"
+    },
+    {
+      name: "Dr. Elena Rodriguez",
+      role: "Lead Psychologist",
+      rating: "4.7",
+      img: "/dr-rodriguez.jpg"
+    }
   ];
+
+  const testimonials = [
+    {
+      quote: "The precision and ease of booking through MedAI changed how I view healthcare. I felt heard and cared for from the first minute.",
+      author: "Robert King",
+      details: "Patient for 2 years",
+      initials: "RK",
+      avatarColor: "bg-blue-600"
+    },
+    {
+      quote: "MedAI's pediatric department is amazing. My children actually look forward to their checkups now!",
+      author: "Amanda Lee",
+      details: "Mother of three",
+      initials: "AL",
+      avatarColor: "bg-teal-600"
+    },
+    {
+      quote: "Fast results, secure data, and highly professional doctors. It's exactly what modern healthcare should be.",
+      author: "David Chen",
+      details: "Routine Checkup Patient",
+      initials: "DC",
+      avatarColor: "bg-emerald-700"
+    }
+  ];
+
+  const scrollSpecialists = (direction) => {
+    if (direction === "next") {
+      setActiveSpecialistIdx((prev) => (prev + 1) % specialists.length);
+    } else {
+      setActiveSpecialistIdx((prev) => (prev - 1 + specialists.length) % specialists.length);
+    }
+  };
 
   return (
-    <div style={{ minHeight: "100vh", background: "#F8FAFC", color: "#0F172A", overflowX: "hidden", fontFamily: "'Inter', sans-serif" }}>
-
-      {/* ── Global Styles ── */}
+    <div className="min-h-screen bg-white text-slate-800 font-plus overflow-x-hidden antialiased">
+      {/* ── Google Fonts Import ── */}
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-        * { box-sizing: border-box; }
-        body { margin: 0; padding: 0; }
-        html { scroll-behavior: smooth; }
-
-        .text-brand { color: #0F766E; } /* Medical Teal */
-        .bg-brand { background: #0F766E; }
-        
-        .text-gradient {
-          background: linear-gradient(135deg, #0F766E 0%, #0369A1 100%);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@300;400;500;600;700;800&display=swap');
+        .font-plus {
+          font-family: 'Plus Jakarta Sans', sans-serif;
         }
-
-        /* Navbar - Clean, white, professional */
-        .navbar {
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          height: 76px;
-          background: ${scrolled ? "rgba(255,255,255,0.98)" : "rgba(255,255,255,0.8)"};
-          backdrop-filter: blur(20px);
-          -webkit-backdrop-filter: blur(20px);
-          border-bottom: 1px solid ${scrolled ? "rgba(226,232,240,1)" : "transparent"};
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 0 5%;
-          z-index: 1000;
-          transition: all 0.3s ease;
-          box-shadow: ${scrolled ? "0 4px 20px -8px rgba(15,23,42,0.05)" : "none"};
+        .font-outfit {
+          font-family: 'Outfit', sans-serif;
         }
-        .nav-links { display: flex; gap: 40px; }
-        .nav-links a {
-          text-decoration: none;
-          color: #475569;
-          font-weight: 500;
-          font-size: 15px;
-          transition: color 0.2s;
+        .text-brand-teal {
+          color: #005A51;
         }
-        .nav-links a:hover { color: #0F766E; }
-
-        /* Buttons - Flat, modern, solid */
-        .btn-primary {
-          height: 48px; padding: 0 28px; border-radius: 8px;
-          background: #0F766E; color: white; font-weight: 600; font-size: 15px; border: none;
-          display: inline-flex; align-items: center; gap: 8px;
-          cursor: pointer; text-decoration: none;
-          transition: all 0.2s ease;
+        .bg-brand-teal {
+          background-color: #005A51;
         }
-        .btn-primary:hover { background: #115E59; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(15, 118, 110, 0.2); }
-        
-        .btn-outline {
-          height: 48px; padding: 0 28px; border-radius: 8px;
-          background: white; color: #0F766E; font-weight: 600;
-          font-size: 15px; border: 1.5px solid #0F766E;
-          display: inline-flex; align-items: center; gap: 8px;
-          cursor: pointer; text-decoration: none;
-          transition: all 0.2s ease;
-        }
-        .btn-outline:hover { background: #F0FDFA; }
-
-        .btn-ghost {
-          height: 40px; padding: 0 16px; border-radius: 8px;
-          background: transparent; color: #334155; font-weight: 600; font-size: 15px; border: none;
-          display: inline-flex; align-items: center; cursor: pointer; text-decoration: none;
-          transition: background 0.2s;
-        }
-        .btn-ghost:hover { background: #F1F5F9; color: #0F172A; }
-
-        /* Clean feature cards */
-        .feature-card {
-          background: white;
-          border: 1px solid #E2E8F0;
-          border-radius: 16px;
-          padding: 40px 32px;
-          transition: all 0.3s ease;
-          box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02), 0 2px 4px -2px rgba(0,0,0,0.02);
-        }
-        .feature-card:hover { 
-          transform: translateY(-4px); 
-          box-shadow: 0 12px 24px -8px rgba(15,23,42,0.08); 
-          border-color: #CBD5E1; 
-        }
-
-        .section-label {
-          display: inline-flex; align-items: center; gap: 6px;
-          font-size: 13px; font-weight: 700; color: #0F766E;
-          text-transform: uppercase; letter-spacing: 0.05em;
-          margin-bottom: 16px;
-        }
-
-        @media (max-width: 1024px) {
-          .hero-grid { grid-template-columns: 1fr !important; text-align: center; }
-          .hero-ctas { justify-content: center !important; }
-          .hero-image-container { display: none !important; }
-          .nav-links { display: none !important; }
-          .features-grid { grid-template-columns: 1fr !important; }
-          .benefits-grid { grid-template-columns: 1fr 1fr !important; }
-          .steps-grid { grid-template-columns: 1fr !important; }
-        }
-        @media (max-width: 640px) {
-          .benefits-grid { grid-template-columns: 1fr !important; }
-          .stats-grid { grid-template-columns: 1fr 1fr !important; }
+        .border-brand-teal {
+          border-color: #005A51;
         }
       `}</style>
 
-      {/* ── Background Elements (Soft, clinical) ── */}
-      <div style={{ position: "absolute", top: 0, right: 0, width: "50%", height: "800px", background: "radial-gradient(circle, #E0F2FE 0%, transparent 70%)", opacity: 0.6, zIndex: 0 }} />
-
       {/* ── NAVBAR ── */}
-      <nav className="navbar">
-        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <div style={{ width: 34, height: 34, borderRadius: 8, background: "#0F766E", display: "flex", justifyContent: "center", alignItems: "center" }}>
-            <Activity size={20} color="white" strokeWidth={2.5} />
+      <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+        scrolled ? "bg-white/95 backdrop-blur-md shadow-sm py-4 border-b border-slate-100" : "bg-transparent py-5"
+      }`}>
+        <div className="max-w-7xl mx-auto px-6 lg:px-8 flex justify-between items-center">
+          {/* Logo */}
+          <Link to="/" className="flex items-center gap-2">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#005A51" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 10.5L12 3l9 7.5V20a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+              <line x1="12" y1="9" x2="12" y2="15" />
+              <line x1="9" y1="12" x2="15" y2="12" />
+            </svg>
+            <span className="text-2xl font-extrabold text-slate-900 tracking-tight font-outfit">MedAI</span>
+          </Link>
+
+          {/* Navigation Links */}
+          <div className="hidden md:flex items-center gap-8 font-semibold text-slate-600 text-sm">
+            <Link to="/" className="hover:text-[#005A51] transition-colors">Home</Link>
+            <a href="#appointments" className="hover:text-[#005A51] transition-colors">Appointments</a>
+            <a href="#records" className="hover:text-[#005A51] transition-colors">Records</a>
+            <a href="#doctors" className="hover:text-[#005A51] transition-colors">Doctors</a>
+            <a href="#contact" className="hover:text-[#005A51] transition-colors">Contact</a>
           </div>
-          <span style={{ fontSize: 22, fontWeight: 700, color: "#0F172A", letterSpacing: "-0.02em" }}>MedAI</span>
-        </div>
 
-        <div className="nav-links">
-          <a href="#capabilities">Capabilities</a>
-          <a href="#technology">Technology</a>
-          <a href="#impact">Clinical Impact</a>
-        </div>
-
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <a href="/login" className="btn-ghost">Patient / Staff Portal</a>
-          <a href="/signup" className="btn-primary" style={{ height: "40px" }}>Book Demo</a>
+          {/* Actions */}
+          <div className="flex items-center gap-4">
+            <Link to="/login" className="bg-[#005A51] hover:bg-[#004D45] text-white font-bold text-sm px-6 py-2.5 rounded-lg transition-colors shadow-sm shadow-teal-900/10">
+              Portal Login
+            </Link>
+          </div>
         </div>
       </nav>
 
-      {/* ════════════════════════════════════════
-            HERO SECTION
-      ════════════════════════════════════════ */}
-      <section style={{ minHeight: "100vh", display: "flex", alignItems: "center", position: "relative", zIndex: 10, padding: "0 5%" }}>
-        <div style={{ width: "100%", maxWidth: 1280, margin: "0 auto", paddingTop: 80 }}>
-          <div className="hero-grid" style={{ display: "grid", gridTemplateColumns: "1.1fr 0.9fr", gap: 64, alignItems: "center" }}>
+      {/* ── HERO SECTION ── */}
+      <section className="pt-32 pb-20 lg:pt-40 lg:pb-28 relative overflow-hidden bg-gradient-to-b from-teal-50/20 via-white to-white">
+        {/* Soft Background Blobs */}
+        <div className="absolute top-0 right-0 w-[50%] h-[80%] bg-radial-gradient from-teal-500/5 to-transparent rounded-full blur-3xl pointer-events-none" />
+        
+        <div className="max-w-7xl mx-auto px-6 lg:px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
+            
+            {/* Left Content */}
+            <div className="lg:col-span-6 z-10">
+              <Reveal>
+                <h1 className="text-5xl lg:text-[64px] font-extrabold tracking-tight text-slate-900 leading-[1.1] font-outfit">
+                  Your Health, <span className="text-[#005A51]">Simplified.</span>
+                </h1>
+              </Reveal>
 
-            {/* Left: Copy */}
-            <div>
-              <div style={{ display: "inline-flex", alignItems: "center", gap: "8px", background: "#F0FDFA", padding: "6px 14px", borderRadius: "100px", border: "1px solid #CCFBF1", marginBottom: "24px" }}>
-                <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#0D9488" }} />
-                <span style={{ fontSize: "13px", fontWeight: 600, color: "#0F766E" }}>Next-Generation Clinical Intelligence</span>
-              </div>
+              <Reveal delay={150}>
+                <p className="mt-6 text-slate-600 text-lg leading-relaxed font-medium">
+                  Quality Care, Anytime, Anywhere. Experience precision medicine tailored to your lifestyle with our network of world-class specialists.
+                </p>
+              </Reveal>
 
-              <h1 style={{ fontSize: "clamp(40px, 5vw, 68px)", fontWeight: 800, lineHeight: 1.1, letterSpacing: "-0.03em", margin: "0 0 24px 0", color: "#0F172A" }}>
-                Elevating patient care with <span className="text-gradient">precision AI.</span>
-              </h1>
+              {/* CTAs */}
+              <Reveal delay={300}>
+                <div className="mt-8 flex flex-wrap gap-4 items-center">
+                  <Link to="/signup" className="bg-[#005A51] hover:bg-[#004D45] text-white font-bold px-6 py-3.5 rounded-lg shadow-md shadow-teal-900/15 hover:shadow-lg transition-all flex items-center gap-2 group text-base">
+                    Book Appointment <span className="font-light group-hover:translate-x-0.5 transition-transform">+</span>
+                  </Link>
+                  <a href="#doctors" className="border border-slate-200 text-slate-700 bg-white hover:bg-slate-50 font-bold px-6 py-3.5 rounded-lg shadow-sm transition-colors text-base">
+                    View Doctors
+                  </a>
+                </div>
+              </Reveal>
 
-              <p style={{ fontSize: "clamp(17px, 1.8vw, 20px)", color: "#475569", lineHeight: 1.6, margin: "0 0 40px 0", fontWeight: 400, maxWidth: 540 }}>
-                Empower your medical staff with real-time telemetry, predictive analytics, and instant diagnostic support. Built for modern clinics and hospitals.
-              </p>
-
-              <div className="hero-ctas" style={{ display: "flex", gap: "16px", flexWrap: "wrap", alignItems: "center", marginBottom: "48px" }}>
-                <a href="/signup" className="btn-primary" style={{ height: "54px", padding: "0 32px", fontSize: "16px" }}>
-                  Start Platform Free <ArrowRight size={18} />
-                </a>
-                <a href="#capabilities" className="btn-outline" style={{ height: "54px", padding: "0 32px", fontSize: "16px", border: "none", background: "#F1F5F9", color: "#334155" }}>
-                  View Capabilities
-                </a>
-              </div>
-
-              <div style={{ display: "flex", alignItems: "center", gap: "24px", color: "#64748B", fontSize: "14px", fontWeight: 500 }}>
-                <span style={{ display: "flex", alignItems: "center", gap: "6px" }}><Check size={18} color="#0D9488" /> HIPAA Compliant</span>
-                <span style={{ display: "flex", alignItems: "center", gap: "6px" }}><Check size={18} color="#0D9488" /> EHR Integration</span>
-              </div>
+              {/* Search Capsule */}
+              <Reveal delay={450}>
+                <div className="mt-10 flex items-center bg-white border border-slate-200/80 rounded-full shadow-sm shadow-slate-100/50 pl-5 pr-2 py-2 max-w-lg w-full group focus-within:border-teal-500 focus-within:ring-1 focus-within:ring-teal-500/20 transition-all">
+                  <Search className="text-slate-400 mr-2 group-focus-within:text-[#005A51] transition-colors" size={18} />
+                  <input
+                    type="text"
+                    placeholder="Find a doctor or search symptoms..."
+                    className="w-full bg-transparent border-none outline-none text-slate-800 placeholder-slate-400/90 text-sm py-1 font-semibold"
+                  />
+                  <button className="bg-[#0052CC] hover:bg-[#0043A4] text-white font-bold text-sm px-6 py-2.5 rounded-full transition-colors flex-shrink-0">
+                    Search
+                  </button>
+                </div>
+              </Reveal>
             </div>
 
-            {/* Right: Clean Clinical Imagery & UI */}
-            <div className="hero-image-container" style={{ position: "relative", height: "600px", width: "100%" }}>
-              {/* Doctor/Clinic Image Placeholder */}
-              <div style={{ position: "absolute", top: "40px", right: 0, width: "85%", height: "500px", borderRadius: "24px", overflow: "hidden", boxShadow: "0 20px 40px -12px rgba(0,0,0,0.15)" }}>
-                <img 
-                  src="https://images.unsplash.com/photo-1551076805-e1869033e561?q=80&w=1200&auto=format&fit=crop" 
-                  alt="Modern Clinic" 
-                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                />
-                <div style={{ position: "absolute", inset: 0, background: "linear-gradient(0deg, rgba(15,23,42,0.4) 0%, transparent 40%)" }} />
-              </div>
+            {/* Right Image Content */}
+            <div className="lg:col-span-6 flex justify-center lg:justify-end relative mt-12 lg:mt-0">
+              <Reveal delay={200} className="relative w-full max-w-md lg:max-w-lg">
+                {/* Doctor Portrait Image container */}
+                <div className="relative rounded-3xl border-4 border-white shadow-xl overflow-hidden aspect-[4/5] bg-slate-100">
+                  <img
+                    src="/hero-doctor.jpg"
+                    alt="Female doctor in clinical hallway smiling"
+                    className="w-full h-full object-cover object-top hover:scale-[1.02] transition-transform duration-700"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900/10 via-transparent to-transparent pointer-events-none" />
+                </div>
 
-              {/* Clean UI Card Overlay */}
-              <div style={{ position: "absolute", bottom: "80px", left: 0, background: "white", borderRadius: "16px", padding: "24px", width: "320px", boxShadow: "0 24px 48px -12px rgba(15,23,42,0.15)", border: "1px solid #E2E8F0" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "20px" }}>
-                  <div style={{ width: 44, height: 44, borderRadius: "50%", background: "#F1F5F9", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "16px", fontWeight: 600, color: "#334155" }}>SJ</div>
+                {/* Badge Overlay */}
+                <div className="absolute bottom-6 left-6 right-6 bg-white/95 backdrop-blur-sm border border-slate-100 shadow-xl rounded-2xl p-4 flex items-center gap-3">
+                  <div className="bg-teal-50 p-2 rounded-xl text-teal-700">
+                    <ShieldCheck className="w-6 h-6" />
+                  </div>
                   <div>
-                    <div style={{ fontSize: "15px", fontWeight: 700, color: "#0F172A" }}>Sarah Jenkins</div>
-                    <div style={{ fontSize: "13px", color: "#64748B", fontWeight: 500 }}>Vitals Stream Active</div>
+                    <div className="text-sm font-extrabold text-slate-900 font-outfit">Verified Care</div>
+                    <div className="text-xs text-slate-500 font-bold">Top rated specialists only</div>
                   </div>
                 </div>
-                
-                <div style={{ display: "flex", gap: "12px" }}>
-                  <div style={{ flex: 1, background: "#F8FAFC", padding: "16px", borderRadius: "12px", border: "1px solid #F1F5F9" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "8px", color: "#EF4444" }}>
-                      <HeartPulse size={16} /> <span style={{ fontSize: "12px", fontWeight: 600 }}>Heart Rate</span>
-                    </div>
-                    <div style={{ fontSize: "32px", fontWeight: 700, color: "#0F172A", lineHeight: 1 }}>{pulse}</div>
-                  </div>
-                  <div style={{ flex: 1, background: "#F0FDFA", padding: "16px", borderRadius: "12px", border: "1px solid #CCFBF1" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "8px", color: "#0D9488" }}>
-                      <ShieldCheck size={16} /> <span style={{ fontSize: "12px", fontWeight: 600 }}>AI Status</span>
-                    </div>
-                    <div style={{ fontSize: "16px", fontWeight: 700, color: "#0F766E", marginTop: "10px" }}>Stable</div>
-                  </div>
-                </div>
-              </div>
+              </Reveal>
             </div>
 
           </div>
         </div>
       </section>
 
-      {/* ════════════════════════════════════════
-            CAPABILITIES SECTION
-      ════════════════════════════════════════ */}
-      <section id="capabilities" style={{ padding: "100px 5%", background: "white", position: "relative", zIndex: 10 }}>
-        <div style={{ maxWidth: 1280, margin: "0 auto" }}>
+      {/* ── STATS SECTION ── */}
+      <section className="bg-[#005A51] py-8 text-white relative z-20">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-y-8 gap-x-4 text-center divide-y lg:divide-y-0 lg:divide-x divide-teal-400/20">
+            <div className="flex flex-col justify-center items-center">
+              <div className="text-3xl lg:text-4xl font-extrabold tracking-tight font-outfit">
+                <AnimatedCounter end={500} suffix="+" />
+              </div>
+              <div className="text-teal-200 text-xs font-bold uppercase tracking-wider mt-1.5 font-outfit">Doctors</div>
+            </div>
+            
+            <div className="flex flex-col justify-center items-center pt-8 lg:pt-0">
+              <div className="text-3xl lg:text-4xl font-extrabold tracking-tight font-outfit">
+                <AnimatedCounter end={50} suffix="k+" />
+              </div>
+              <div className="text-teal-200 text-xs font-bold uppercase tracking-wider mt-1.5 font-outfit">Patients Served</div>
+            </div>
+            
+            <div className="flex flex-col justify-center items-center">
+              <div className="text-3xl lg:text-4xl font-extrabold tracking-tight font-outfit">24/7</div>
+              <div className="text-teal-200 text-xs font-bold uppercase tracking-wider mt-1.5 font-outfit">Support</div>
+            </div>
+            
+            <div className="flex flex-col justify-center items-center pt-8 lg:pt-0">
+              <div className="text-3xl lg:text-4xl font-extrabold tracking-tight font-outfit">HIPAA</div>
+              <div className="text-teal-200 text-xs font-bold uppercase tracking-wider mt-1.5 font-outfit">Compliant</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── OUR SPECIALIZED CARE ── */}
+      <section className="py-24 bg-white" id="services">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <Reveal>
-            <div style={{ textAlign: "center", marginBottom: "64px" }}>
-              <div className="section-label">Medical Capabilities</div>
-              <h2 style={{ fontSize: "clamp(32px, 4vw, 44px)", fontWeight: 800, color: "#0F172A", margin: "0 0 16px 0", letterSpacing: "-0.02em" }}>
-                Comprehensive tools for <span className="text-gradient">modern practice.</span>
+            <div className="text-center max-w-3xl mx-auto">
+              <h2 className="text-3xl lg:text-4xl font-extrabold text-slate-900 tracking-tight font-outfit">
+                Our Specialized Care
               </h2>
-              <p style={{ fontSize: "18px", color: "#64748B", maxWidth: 600, margin: "0 auto", lineHeight: 1.6 }}>
-                Everything your clinical team needs to monitor, analyze, and diagnose patients with unprecedented speed and accuracy.
+              <p className="mt-4 text-slate-500 font-medium text-base lg:text-lg leading-relaxed">
+                Explore our range of clinical services, each delivered with the empathetic precision that defines MedAI.
               </p>
             </div>
           </Reveal>
 
-          <div className="features-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "24px" }}>
-            {features.map((f, i) => (
-              <Reveal key={f.title} delay={i * 80}>
-                <div className="feature-card">
-                  <div style={{ width: 48, height: 48, borderRadius: 12, background: f.bg, color: f.color, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "20px" }}>
-                    {f.icon}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 mt-16">
+            {services.map((svc, idx) => (
+              <Reveal key={svc.title} delay={idx * 100}>
+                <div className="bg-white border border-slate-100 rounded-2xl p-8 hover:shadow-lg hover:shadow-slate-100/80 hover:-translate-y-1 transition-all duration-300 flex flex-col items-start shadow-sm">
+                  <div className="w-12 h-12 rounded-xl bg-teal-50 border border-teal-100/50 flex items-center justify-center mb-6">
+                    {svc.icon}
                   </div>
-                  <h3 style={{ fontSize: "18px", fontWeight: 700, color: "#0F172A", margin: "0 0 12px 0" }}>{f.title}</h3>
-                  <p style={{ fontSize: "15px", color: "#64748B", lineHeight: 1.6, margin: 0 }}>{f.desc}</p>
+                  <h3 className="text-lg font-bold text-slate-800 font-outfit">{svc.title}</h3>
+                  <p className="mt-3 text-slate-500 text-sm leading-relaxed font-semibold">{svc.desc}</p>
                 </div>
               </Reveal>
             ))}
@@ -340,127 +375,335 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ════════════════════════════════════════
-            HOW IT WORKS (TECHNOLOGY)
-      ════════════════════════════════════════ */}
-      <section id="technology" style={{ padding: "100px 5%", background: "#F8FAFC", borderTop: "1px solid #F1F5F9" }}>
-        <div style={{ maxWidth: 1280, margin: "0 auto" }}>
+      {/* ── HOW IT WORKS ── */}
+      <section className="py-24 bg-[#EBF2FC]/70 relative" id="appointments">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8 relative z-10">
           <Reveal>
-            <div style={{ textAlign: "center", marginBottom: "80px" }}>
-              <div className="section-label">Technology workflow</div>
-              <h2 style={{ fontSize: "clamp(32px, 4vw, 44px)", fontWeight: 800, color: "#0F172A", margin: "0 0 16px 0", letterSpacing: "-0.02em" }}>
-                Intelligent care in <span className="text-brand">three steps.</span>
+            <div className="text-center max-w-3xl mx-auto">
+              <h2 className="text-3xl lg:text-4xl font-extrabold text-slate-900 tracking-tight font-outfit">
+                How It Works
               </h2>
             </div>
           </Reveal>
 
-          <div className="steps-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "40px", position: "relative" }}>
-            {/* Subtle Connector line */}
-            <div style={{ position: "absolute", top: "28px", left: "16.6%", right: "16.6%", height: "1px", background: "#CBD5E1", zIndex: 0 }} />
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 mt-16 relative">
+            {/* Desktop Connector Line */}
+            <div className="hidden lg:block absolute top-7 left-[15%] right-[15%] h-[2px] bg-slate-200 z-0" />
 
-            {steps.map((s, i) => (
-              <Reveal key={s.step} delay={i * 100}>
-                <div style={{ position: "relative", zIndex: 1, background: "#F8FAFC" }}>
-                  <div style={{ width: 56, height: 56, borderRadius: "50%", background: "white", border: `2px solid ${i === 1 ? "#0F766E" : "#E2E8F0"}`, color: i === 1 ? "#0F766E" : "#64748B", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: "24px", margin: "0 auto 24px auto", boxShadow: i === 1 ? "0 8px 16px rgba(15, 118, 110, 0.12)" : "none" }}>
-                    {s.icon}
-                  </div>
-                  <div style={{ textAlign: "center" }}>
-                    <span style={{ fontSize: "14px", fontWeight: 700, color: "#0F766E", display: "block", marginBottom: "8px" }}>STEP {s.step}</span>
-                    <h3 style={{ fontSize: "20px", fontWeight: 700, color: "#0F172A", margin: "0 0 12px 0" }}>{s.title}</h3>
-                    <p style={{ fontSize: "15px", color: "#64748B", lineHeight: 1.6, margin: 0, maxWidth: "280px", marginLeft: "auto", marginRight: "auto" }}>{s.desc}</p>
-                  </div>
+            {steps.map((step, idx) => (
+              <Reveal key={step.title} delay={idx * 150} className="relative z-10 text-center flex flex-col items-center">
+                <div className="w-14 h-14 rounded-full bg-white border-2 border-slate-200 flex items-center justify-center text-[#005A51] font-bold text-lg shadow-sm hover:border-[#005A51] transition-colors duration-300">
+                  {step.num}
                 </div>
+                <h3 className="text-lg font-bold text-slate-800 mt-6 font-outfit">{step.title}</h3>
+                <p className="mt-3 text-slate-500 text-sm leading-relaxed font-semibold max-w-xs">{step.desc}</p>
               </Reveal>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ════════════════════════════════════════
-            CLINICAL IMPACT (BENEFITS)
-      ════════════════════════════════════════ */}
-      <section id="impact" style={{ padding: "100px 5%", background: "white" }}>
-        <div style={{ maxWidth: 1280, margin: "0 auto" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "80px", alignItems: "center" }}>
+      {/* ── MEET OUR SPECIALISTS ── */}
+      <section className="py-24 bg-white" id="doctors">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-6">
             <Reveal>
               <div>
-                <div className="section-label">Proven Impact</div>
-                <h2 style={{ fontSize: "clamp(32px, 3.5vw, 44px)", fontWeight: 800, color: "#0F172A", margin: "0 0 20px 0", letterSpacing: "-0.02em", lineHeight: 1.1 }}>
-                  Better outcomes for patients. <br/> Less burnout for doctors.
+                <h2 className="text-3xl lg:text-4xl font-extrabold text-slate-900 tracking-tight font-outfit">
+                  Meet Our Specialists
                 </h2>
-                <p style={{ fontSize: "17px", color: "#64748B", lineHeight: 1.6, margin: "0 0 40px 0" }}>
-                  MedAI doesn't replace clinicians; it empowers them. By automating telemetry and highlighting high-risk patients instantly, your team can focus on what matters most: human care.
+                <p className="mt-2 text-slate-500 font-semibold text-sm sm:text-base">
+                  Top-rated medical professionals across diverse fields.
                 </p>
-                <div style={{ display: "flex", gap: "16px" }}>
-                  <a href="/signup" className="btn-primary">Create Clinic Profile</a>
-                </div>
               </div>
             </Reveal>
 
-            <div className="benefits-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px" }}>
-              {benefits.map((b, i) => (
-                <Reveal key={b.label} delay={i * 80}>
-                  <div style={{ padding: "32px 24px", background: "#F8FAFC", borderRadius: "16px", border: "1px solid #F1F5F9" }}>
-                    <div style={{ fontSize: "40px", fontWeight: 800, color: "#0F766E", letterSpacing: "-0.03em", lineHeight: 1, marginBottom: "12px" }}>{b.metric}</div>
-                    <div style={{ fontSize: "16px", fontWeight: 700, color: "#0F172A", marginBottom: "8px" }}>{b.label}</div>
-                    <p style={{ margin: 0, fontSize: "14px", color: "#64748B", lineHeight: 1.5 }}>{b.desc}</p>
+            {/* Slider arrows */}
+            <Reveal className="flex gap-2">
+              <button
+                onClick={() => scrollSpecialists("prev")}
+                className="w-10 h-10 rounded-full border border-slate-200 bg-white flex items-center justify-center text-slate-600 hover:bg-slate-50 transition-colors shadow-sm focus:outline-none"
+              >
+                <ChevronLeft size={18} />
+              </button>
+              <button
+                onClick={() => scrollSpecialists("next")}
+                className="w-10 h-10 rounded-full border border-slate-200 bg-white flex items-center justify-center text-slate-600 hover:bg-slate-50 transition-colors shadow-sm focus:outline-none"
+              >
+                <ChevronRight size={18} />
+              </button>
+            </Reveal>
+          </div>
+
+          {/* Specialists grid - layout is responsive but can slide */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mt-12">
+            {specialists.map((doc, idx) => {
+              // Simple dynamic highlighting to simulate slider highlight
+              const isHighlighted = idx === activeSpecialistIdx;
+              return (
+                <Reveal key={doc.name} delay={idx * 100}>
+                  <div className={`bg-white border rounded-2xl p-4 shadow-sm hover:shadow-md transition-all duration-300 ${
+                    isHighlighted ? "border-[#005A51] ring-1 ring-[#005A51]/20 scale-[1.01]" : "border-slate-100"
+                  }`}>
+                    <div className="aspect-square w-full rounded-xl overflow-hidden bg-slate-50 relative">
+                      <img
+                        src={doc.img}
+                        alt={doc.name}
+                        className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+                      />
+                    </div>
+                    
+                    <div className="mt-4 flex justify-between items-start">
+                      <div>
+                        <h3 className="font-bold text-slate-900 font-outfit text-base">{doc.name}</h3>
+                        <p className="text-xs text-slate-500 font-bold mt-1">{doc.role}</p>
+                      </div>
+                      <div className="flex items-center gap-1 bg-emerald-50 text-emerald-800 text-[11px] font-bold px-2 py-0.5 rounded-full">
+                        <Star className="w-3 h-3 fill-emerald-600 stroke-emerald-600" />
+                        {doc.rating}
+                      </div>
+                    </div>
+
+                    <Link to="/login" className="w-full bg-[#EBF2FC] hover:bg-[#D8E6FC] text-[#005A51] font-extrabold text-xs py-2.5 rounded-lg transition-colors mt-4 text-center block font-outfit">
+                      Profile
+                    </Link>
                   </div>
                 </Reveal>
-              ))}
-            </div>
+              );
+            })}
           </div>
         </div>
       </section>
 
-      {/* ════════════════════════════════════════
-            FINAL CTA
-      ════════════════════════════════════════ */}
-      <section style={{ padding: "80px 5% 100px", background: "white" }}>
-        <div style={{ maxWidth: 1000, margin: "0 auto" }}>
+      {/* ── PATIENT SUCCESS STORIES ── */}
+      <section className="py-24 bg-[#EBF2FC]/70" id="records">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <Reveal>
-            <div style={{ background: "#0F172A", borderRadius: "24px", padding: "64px 48px", textAlign: "center", color: "white", position: "relative", overflow: "hidden" }}>
-              <div style={{ position: "absolute", top: 0, right: 0, width: "300px", height: "300px", background: "radial-gradient(circle, rgba(13,148,136,0.3) 0%, transparent 70%)" }} />
-              
-              <div style={{ position: "relative", zIndex: 1 }}>
-                <h2 style={{ fontSize: "clamp(32px, 4vw, 48px)", fontWeight: 800, margin: "0 0 16px 0", letterSpacing: "-0.02em" }}>
-                  Modernize your practice today.
-                </h2>
-                <p style={{ fontSize: "18px", color: "#94A3B8", margin: "0 auto 40px auto", maxWidth: "600px", lineHeight: 1.6 }}>
-                  Join thousands of healthcare providers using MedAI to deliver smarter, faster, and safer patient care.
-                </p>
-                <div style={{ display: "flex", gap: "16px", justifyContent: "center", flexWrap: "wrap" }}>
-                  <a href="/signup" style={{ background: "white", color: "#0F172A", height: "52px", padding: "0 32px", borderRadius: "8px", fontWeight: 700, display: "inline-flex", alignItems: "center", textDecoration: "none", transition: "background 0.2s" }}
-                    onMouseOver={e => e.target.style.background = "#F8FAFC"} onMouseOut={e => e.target.style.background = "white"}>
-                    Get Started Free
-                  </a>
-                  <a href="/login" style={{ background: "transparent", color: "white", border: "1px solid rgba(255,255,255,0.3)", height: "52px", padding: "0 32px", borderRadius: "8px", fontWeight: 600, display: "inline-flex", alignItems: "center", textDecoration: "none", transition: "background 0.2s" }}
-                    onMouseOver={e => e.target.style.background = "rgba(255,255,255,0.1)"} onMouseOut={e => e.target.style.background = "transparent"}>
-                    Log In
-                  </a>
+            <div className="text-center max-w-3xl mx-auto">
+              <h2 className="text-3xl lg:text-4xl font-extrabold text-slate-900 tracking-tight font-outfit">
+                Patient Success Stories
+              </h2>
+            </div>
+          </Reveal>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-16">
+            {testimonials.map((test, idx) => (
+              <Reveal key={test.author} delay={idx * 150}>
+                <div className="bg-white border border-slate-100 rounded-2xl p-8 shadow-sm flex flex-col justify-between h-full">
+                  <div>
+                    {/* Stars */}
+                    <div className="flex gap-1 mb-6 text-emerald-600">
+                      {[...Array(5)].map((_, i) => (
+                        <Star key={i} className="w-4 h-4 fill-emerald-600 stroke-emerald-600" />
+                      ))}
+                    </div>
+                    <p className="text-slate-600 text-sm italic font-semibold leading-relaxed">
+                      "{test.quote}"
+                    </p>
+                  </div>
+
+                  {/* Profile info */}
+                  <div className="flex items-center gap-3 mt-8 pt-6 border-t border-slate-50">
+                    <div className={`w-10 h-10 rounded-full ${test.avatarColor} text-white flex items-center justify-center font-bold text-xs`}>
+                      {test.initials}
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-extrabold text-slate-900 font-outfit">{test.author}</h4>
+                      <p className="text-xs text-slate-500 font-bold">{test.details}</p>
+                    </div>
+                  </div>
                 </div>
+              </Reveal>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── MOBILE APP TEASER ── */}
+      <section className="py-20 bg-white" id="contact">
+        <div className="max-w-6xl mx-auto px-6 lg:px-8">
+          <Reveal>
+            <div className="bg-[#005A51] rounded-[32px] p-8 md:p-12 lg:p-16 text-white overflow-hidden relative shadow-xl shadow-teal-900/10">
+              {/* background lighting gradient */}
+              <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-radial-gradient from-teal-400/20 to-transparent rounded-full blur-2xl pointer-events-none" />
+
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center relative z-10">
+                
+                {/* Text Block */}
+                <div className="lg:col-span-7">
+                  <h2 className="text-3xl sm:text-4xl lg:text-[42px] font-extrabold tracking-tight leading-[1.15] font-outfit">
+                    Manage your health on the go
+                  </h2>
+                  <p className="mt-4 text-teal-100 text-base lg:text-lg leading-relaxed font-semibold text-teal-100/90 max-w-xl">
+                    Download the MedAI app to book appointments, view labs, and message your doctor securely from anywhere.
+                  </p>
+
+                  {/* Store Buttons */}
+                  <div className="mt-8 flex flex-wrap gap-4">
+                    {/* App Store */}
+                    <a href="#store" className="bg-slate-950 hover:bg-slate-900 text-white border border-slate-800 rounded-xl px-5 py-2.5 flex items-center gap-3 transition-colors shadow-md">
+                      <Apple className="w-6 h-6 fill-white text-white" />
+                      <div className="text-left">
+                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider leading-none">Download on the</div>
+                        <div className="text-sm font-bold font-outfit leading-tight mt-1">App Store</div>
+                      </div>
+                    </a>
+
+                    {/* Google Play */}
+                    <a href="#store" className="bg-slate-950 hover:bg-slate-900 text-white border border-slate-800 rounded-xl px-5 py-2.5 flex items-center gap-3 transition-colors shadow-md">
+                      <Play className="w-6 h-6 fill-white text-white" />
+                      <div className="text-left">
+                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider leading-none">Get it on</div>
+                        <div className="text-sm font-bold font-outfit leading-tight mt-1">Google Play</div>
+                      </div>
+                    </a>
+                  </div>
+                </div>
+
+                {/* Smartphone Preview Mockup */}
+                <div className="lg:col-span-5 flex justify-center">
+                  <div className="border-[6px] border-white rounded-[40px] w-64 h-[420px] bg-slate-50 relative shadow-2xl overflow-hidden">
+                    {/* Status Bar */}
+                    <div className="h-6 bg-slate-100/80 border-b border-slate-200/50 flex justify-between items-center px-6">
+                      <span className="text-[10px] font-bold text-slate-600">9:41</span>
+                      <div className="flex gap-1 items-center">
+                        <div className="w-2.5 h-2.5 bg-slate-500 rounded-full scale-75" />
+                        <div className="w-3.5 h-2 bg-slate-600 rounded-sm" />
+                      </div>
+                    </div>
+
+                    {/* Screen Content */}
+                    <div className="p-4 flex flex-col gap-3 h-full justify-between">
+                      {/* Logo and Greeting */}
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#005A51" strokeWidth="3">
+                          <path d="M3 10.5L12 3l9 7.5V20a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                        </svg>
+                        <span className="text-[11px] font-extrabold text-slate-900 font-outfit">MedAI</span>
+                      </div>
+
+                      {/* Pill Cards */}
+                      <div className="flex-1 flex flex-col gap-2.5 justify-center py-2">
+                        {/* Green Card */}
+                        <div className="bg-teal-50/70 border border-teal-100 rounded-xl p-3 flex items-center justify-between">
+                          <div className="w-7 h-7 rounded-lg bg-teal-500/10 flex items-center justify-center">
+                            <Activity className="w-4 h-4 text-teal-700" />
+                          </div>
+                          <div className="flex-1 ml-2.5">
+                            <div className="h-2 bg-teal-800/20 rounded w-16" />
+                            <div className="h-1.5 bg-teal-800/10 rounded w-10 mt-1" />
+                          </div>
+                        </div>
+
+                        {/* Blue Card */}
+                        <div className="bg-blue-50/70 border border-blue-100 rounded-xl p-3 flex items-center justify-between">
+                          <div className="w-7 h-7 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                            <ShieldCheck className="w-4 h-4 text-blue-700" />
+                          </div>
+                          <div className="flex-1 ml-2.5">
+                            <div className="h-2 bg-blue-800/20 rounded w-20" />
+                            <div className="h-1.5 bg-blue-800/10 rounded w-12 mt-1" />
+                          </div>
+                        </div>
+
+                        {/* Large Card mockup */}
+                        <div className="bg-slate-100/50 border border-slate-200/50 rounded-xl p-3">
+                          <div className="h-2 bg-slate-300 rounded w-2/3" />
+                          <div className="h-1.5 bg-slate-200 rounded w-1/2 mt-1.5" />
+                          <div className="h-1.5 bg-slate-200 rounded w-5/6 mt-1" />
+                          
+                          <div className="mt-4 flex gap-2">
+                            <div className="h-5 bg-[#005A51] rounded-lg w-16" />
+                            <div className="h-5 bg-white border border-slate-200 rounded-lg w-12" />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Phone Bottom Button */}
+                      <div className="bg-[#005A51] rounded-full h-8 text-[10px] font-bold text-white flex items-center justify-center shadow-md mb-8">
+                        Book Appointment
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
               </div>
             </div>
           </Reveal>
         </div>
       </section>
 
-      {/* ── Clean Footer ── */}
-      <footer style={{ borderTop: "1px solid #E2E8F0", padding: "40px 5%", background: "#F8FAFC" }}>
-        <div style={{ maxWidth: 1280, margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "24px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <Activity size={20} color="#0F766E" strokeWidth={2.5} />
-            <span style={{ fontSize: 18, fontWeight: 700, color: "#0F172A" }}>MedAI</span>
+      {/* ── FOOTER ── */}
+      <footer className="bg-white border-t border-slate-100 pt-16 pb-8">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8">
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8 lg:gap-12 pb-12">
+            {/* Brand Block */}
+            <div className="lg:col-span-5 flex flex-col items-start">
+              <Link to="/" className="flex items-center gap-2">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#005A51" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 10.5L12 3l9 7.5V20a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                  <line x1="12" y1="9" x2="12" y2="15" />
+                  <line x1="9" y1="12" x2="15" y2="12" />
+                </svg>
+                <span className="text-2xl font-extrabold text-slate-900 tracking-tight font-outfit">MedAI</span>
+              </Link>
+              <p className="mt-4 text-slate-500 text-sm font-semibold leading-relaxed max-w-sm">
+                Empowering patients with precision healthcare through advanced technology and empathetic care teams.
+              </p>
+            </div>
+
+            {/* Quick Links */}
+            <div className="lg:col-span-2">
+              <h4 className="text-xs font-bold text-slate-900 uppercase tracking-widest font-outfit">Quick Links</h4>
+              <ul className="mt-4 space-y-2.5 text-slate-500 text-sm font-semibold">
+                <li><a href="#doctors" className="hover:text-[#005A51] transition-colors">Our Doctors</a></li>
+                <li><a href="#services" className="hover:text-[#005A51] transition-colors">Services</a></li>
+                <li><Link to="/signup" className="hover:text-[#005A51] transition-colors">Booking</Link></li>
+                <li><a href="#blog" className="hover:text-[#005A51] transition-colors">Health Blog</a></li>
+              </ul>
+            </div>
+
+            {/* Legal & Compliance */}
+            <div className="lg:col-span-2.5">
+              <h4 className="text-xs font-bold text-slate-900 uppercase tracking-widest font-outfit">Legal & Compliance</h4>
+              <ul className="mt-4 space-y-2.5 text-slate-500 text-sm font-semibold">
+                <li><a href="#privacy" className="hover:text-[#005A51] transition-colors">Privacy Policy</a></li>
+                <li><a href="#terms" className="hover:text-[#005A51] transition-colors">Terms of Service</a></li>
+                <li><a href="#security" className="hover:text-[#005A51] transition-colors">Security Architecture</a></li>
+                <li><a href="#hipaa" className="hover:text-[#005A51] transition-colors">HIPAA Compliance</a></li>
+              </ul>
+            </div>
+
+            {/* Follow Us */}
+            <div className="lg:col-span-2.5">
+              <h4 className="text-xs font-bold text-slate-900 uppercase tracking-widest font-outfit">Follow Us</h4>
+              <div className="mt-4 flex gap-3.5">
+                <a href="#social" className="w-10 h-10 rounded-full bg-[#EBF2FC] text-[#005A51] hover:bg-teal-50 flex items-center justify-center transition-colors shadow-sm">
+                  <Globe size={18} />
+                </a>
+                <a href="#social" className="w-10 h-10 rounded-full bg-[#EBF2FC] text-[#005A51] hover:bg-teal-50 flex items-center justify-center transition-colors shadow-sm">
+                  <Mail size={18} />
+                </a>
+                <a href="#social" className="w-10 h-10 rounded-full bg-[#EBF2FC] text-[#005A51] hover:bg-teal-50 flex items-center justify-center transition-colors shadow-sm">
+                  <Phone size={18} />
+                </a>
+              </div>
+            </div>
           </div>
-          <p style={{ margin: 0, fontSize: "14px", color: "#64748B" }}>
-            © 2026 MedAI Technologies. All rights reserved. HIPAA Compliant.
-          </p>
-          <div style={{ display: "flex", gap: "24px" }}>
-            {["Privacy Policy", "Terms of Service", "Contact Support"].map(l => (
-              <a key={l} href="#" style={{ fontSize: "14px", color: "#64748B", textDecoration: "none", fontWeight: 500, transition: "color 0.2s" }}
-                onMouseOver={e => e.target.style.color = "#0F766E"}
-                onMouseOut={e => e.target.style.color = "#64748B"}>{l}</a>
-            ))}
+
+          {/* Bottom Footer Line */}
+          <div className="mt-12 pt-8 border-t border-slate-100 flex flex-col md:flex-row justify-between items-center gap-4 text-xs font-bold text-slate-400">
+            <p className="order-2 md:order-1">
+              © 2026 MedAI Health. All rights reserved. Secure HIPAA-Compliant Environment.
+            </p>
+            <div className="order-1 md:order-2 flex gap-6">
+              <a href="#privacy" className="hover:text-[#005A51] transition-colors">Privacy Policy</a>
+              <a href="#terms" className="hover:text-[#005A51] transition-colors">Terms of Service</a>
+              <a href="#support" className="hover:text-[#005A51] transition-colors">Contact Support</a>
+            </div>
           </div>
+
         </div>
       </footer>
 

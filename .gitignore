@@ -1,0 +1,14 @@
+# Local environment variables
+backend/.env
+.env
+*.env
+*.env.local
+
+# Python env and cache
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# Node modules
+node_modules/

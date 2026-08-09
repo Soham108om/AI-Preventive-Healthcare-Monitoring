@@ -1,44 +1,29 @@
-# Logs
-
-logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-
-# Node
-
-node_modules
-dist
-dist-ssr
-build
+# Environment variables
+backend/.env
+.env
+*.env
+*.local
 
 # Python
-
 venv/
-**pycache**/
+__pycache__/
 *.pyc
 *.pyo
 *.pyd
 
-# Environment variables
+# Node
+node_modules/
+dist/
+dist-ssr/
+build/
 
-.env
-*.local
+# Vercel
+.vercel/
 
-# Model files (optional if large)
-
+# Model files
 *.pkl
 
-# Editor files
-
-.vscode
-.idea
+# IDE
+.vscode/
+.idea/
 .DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
-.vercel
