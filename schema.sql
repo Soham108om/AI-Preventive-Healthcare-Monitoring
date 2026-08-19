@@ -3,7 +3,40 @@
 -- MedAI preventive healthcare platform
 -- ==========================================
 
--- 1. Create the patient_profile table
+-- 1. Create the profiles table
+CREATE TABLE IF NOT EXISTS public.profiles (
+    id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+    full_name TEXT,
+    role TEXT NOT NULL CHECK (role IN ('patient', 'doctor')),
+    rating INTEGER DEFAULT 0,
+    emergency_phone TEXT,
+    emergency_email TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Enable RLS on profiles table
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+
+-- Allow authenticated users to view profiles
+CREATE POLICY "Users can view profiles" 
+ON public.profiles 
+FOR SELECT 
+TO authenticated 
+USING (true);
+
+-- Allow users to insert their own profile
+CREATE POLICY "Users can insert their own profile" 
+ON public.profiles 
+FOR INSERT 
+WITH CHECK (auth.uid() = id);
+
+-- Allow users to update their own profile
+CREATE POLICY "Users can update their own profile" 
+ON public.profiles 
+FOR UPDATE 
+USING (auth.uid() = id);
+
+-- 2. Create the patient_profile table
 CREATE TABLE IF NOT EXISTS public.patient_profile (
     id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
     age INTEGER,

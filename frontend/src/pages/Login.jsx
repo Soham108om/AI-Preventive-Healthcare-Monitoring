@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import supabase from "../services/supabase";
-import { Activity, Mail, Lock, ArrowRight, Loader2, ShieldCheck, Eye, EyeOff } from "lucide-react";
+import { Mail, Lock, ArrowRight, Loader2, ShieldCheck, Eye, EyeOff, CheckCircle2 } from "lucide-react";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -12,55 +12,62 @@ export default function Login() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // -- NEW UI STATE --
+  // -- UI STATE --
   const [showPassword, setShowPassword] = useState(false);
 
-  // -- EXISTING AUTHENTICATION LOGIC --
+  // -- AUTHENTICATION LOGIC --
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError("");
 
-    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    if (authError) {
-      setError(authError.message);
+      if (authError) {
+        setError(authError.message);
+        setLoading(false);
+        return;
+      }
+
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", authData.user.id)
+        .single();
+
+      if (profileError || !profile) {
+        setError("Clinical profile not found. Access denied.");
+        setLoading(false);
+        return;
+      }
+
+      if (profile.role === "doctor") {
+        navigate("/doctor");
+      } else {
+        navigate("/patient");
+      }
+    } catch (err) {
+      console.error("Network or authentication error:", err);
+      setError("Unable to connect to authentication server. Please check your internet connection or verify if your Supabase project is active/unpaused.");
+    } finally {
       setLoading(false);
-      return;
-    }
-
-    const { data: profile, error: profileError } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", authData.user.id)
-      .single();
-
-    if (profileError || !profile) {
-      setError("Clinical profile not found. Access denied.");
-      setLoading(false);
-      return;
-    }
-
-    if (profile.role === "doctor") {
-      navigate("/doctor");
-    } else {
-      navigate("/patient");
     }
   };
 
   return (
-    <div className="min-h-screen grid grid-cols-1 lg:grid-cols-12 bg-white font-plus overflow-hidden relative">
-      {/* Google Fonts and styles */}
+    <div className="min-h-screen grid grid-cols-1 lg:grid-cols-12 bg-white font-plus overflow-hidden">
+      {/* Google Fonts */}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap');
         .font-plus { font-family: 'Plus Jakarta Sans', sans-serif; }
         .font-outfit { font-family: 'Outfit', sans-serif; }
       `}</style>
 
-      {/* ── THE DROP-DOWN SECURE BADGE (Encrypted Connection) ── */}
+      {/* ── DROP-DOWN ENCRYPTED CONNECTION BADGE ── */}
       <div 
         className={`fixed top-8 left-1/2 lg:left-3/4 -translate-x-1/2 z-50 flex items-center gap-2 bg-emerald-50 border border-emerald-200 text-emerald-700 px-5 py-2.5 rounded-full text-sm font-semibold shadow-lg transition-all duration-500 ${
           loading ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-12 pointer-events-none'
@@ -70,67 +77,112 @@ export default function Login() {
         Establishing encrypted connection...
       </div>
 
-      {/* ── LEFT SIDE: PREMIUM MEDICAL BANNER IMAGE ── */}
-      <div className="hidden lg:block lg:col-span-6 xl:col-span-7 relative h-screen bg-slate-50 select-none">
-        <img 
-          src="/login-banner.jpg" 
-          alt="Medical Stethoscope Banner" 
-          className="w-full h-full object-cover"
-        />
-        {/* Soft overlay gradient to blend with the wave */}
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-transparent to-white/10" />
+      {/* ── LEFT HERO BANNER (50% Split on Desktop) ── */}
+      <div className="hidden lg:col-span-6 lg:flex flex-col justify-between p-12 lg:p-16 relative bg-[#004D45] overflow-hidden select-none">
+        {/* Background Image with Dark Teal Overlay */}
+        <div className="absolute inset-0 z-0">
+          <img 
+            src="/login-banner.jpg" 
+            alt="Medical Dashboard Preview" 
+            className="w-full h-full object-cover object-center opacity-30 mix-blend-overlay"
+          />
+          <div className="absolute inset-0 bg-gradient-to-tr from-[#003832] via-[#004D45]/90 to-[#005A51]/80" />
+        </div>
+
+        {/* Top: Brand Logo */}
+        <div className="relative z-10 flex items-center gap-3">
+          <div className="bg-[#007A6E] text-white p-2.5 rounded-xl flex items-center justify-center shadow-md">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="6" width="18" height="14" rx="2" />
+              <path d="M16 6V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" />
+              <line x1="12" y1="10" x2="12" y2="16" />
+              <line x1="9" y1="13" x2="15" y2="13" />
+            </svg>
+          </div>
+          <span className="text-2xl font-bold text-white tracking-tight font-outfit">MedAI</span>
+        </div>
+
+        {/* Center Content: Headline & Subheading */}
+        <div className="relative z-10 max-w-lg my-auto py-12 space-y-6">
+          <h1 className="text-4xl xl:text-5xl font-extrabold text-white leading-[1.15] tracking-tight font-outfit">
+            Intelligent healthcare, designed around you.
+          </h1>
+          <p className="text-emerald-100/80 text-base xl:text-lg font-normal leading-relaxed">
+            Securely connect to your health dashboard and make smarter decisions with AI-powered insights.
+          </p>
+        </div>
+
+        {/* Bottom: Security & Compliance Badges */}
+        <div className="relative z-10 flex items-center gap-8 pt-6 border-t border-emerald-600/30">
+          <div className="flex items-center gap-2 text-emerald-100/90 text-sm font-medium">
+            <Lock size={16} className="text-emerald-300" />
+            <span>End-to-end encrypted</span>
+          </div>
+          <div className="flex items-center gap-2 text-emerald-100/90 text-sm font-medium">
+            <CheckCircle2 size={16} className="text-emerald-300" />
+            <span>HIPAA Compliant</span>
+          </div>
+        </div>
       </div>
 
-      {/* ── RIGHT SIDE: THE LOGIN FORM CONTAINER ── */}
-      <div className="col-span-1 lg:col-span-6 xl:col-span-5 flex flex-col justify-center px-8 sm:px-16 lg:px-20 py-12 h-screen overflow-y-auto bg-white">
-        <div className="max-w-md w-full mx-auto">
-          
-          {/* Brand Logo */}
-          <div className="flex items-center gap-2 mb-8">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#005A51" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-[#005A51]">
-              <path d="M3 10.5L12 3l9 7.5V20a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-              <line x1="12" y1="9" x2="12" y2="15" />
-              <line x1="9" y1="12" x2="15" y2="12" />
+      {/* ── RIGHT FORM PANEL (50% Split on Desktop) ── */}
+      <div className="col-span-1 lg:col-span-6 flex flex-col justify-between px-6 sm:px-12 xl:px-20 py-10 min-h-screen bg-white">
+        
+        {/* Mobile Header Brand Logo (Visible only on mobile/tablet) */}
+        <div className="lg:hidden flex items-center gap-3 mb-6">
+          <div className="bg-[#005A51] text-white p-2 rounded-lg flex items-center justify-center">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="6" width="18" height="14" rx="2" />
+              <path d="M16 6V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" />
+              <line x1="12" y1="10" x2="12" y2="16" />
+              <line x1="9" y1="13" x2="15" y2="13" />
             </svg>
-            <span className="text-2xl font-extrabold text-slate-900 tracking-tight font-outfit">MedAI</span>
           </div>
+          <span className="text-xl font-bold text-slate-900 font-outfit">MedAI</span>
+        </div>
 
-          {/* Form Header */}
-          <header className="mb-8">
-            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight font-outfit">Welcome Back</h1>
-            <p className="mt-2 text-slate-500 font-semibold text-sm">Access your health dashboard securely.</p>
+        {/* Main Form Center Box */}
+        <div className="max-w-md w-full mx-auto my-auto space-y-8 py-6">
+          
+          {/* Header */}
+          <header className="space-y-2">
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight font-outfit">
+              Welcome back
+            </h2>
+            <p className="text-slate-500 font-medium text-sm sm:text-base">
+              Access your health dashboard securely.
+            </p>
           </header>
 
-          {/* Login Form */}
-          <form onSubmit={handleLogin} className="space-y-6">
+          {/* Form */}
+          <form onSubmit={handleLogin} className="space-y-5">
             
             {/* Email Field */}
-            <div className="space-y-2">
-              <label className="block text-sm font-bold text-slate-700">Email Address</label>
+            <div className="space-y-1.5">
+              <label className="block text-sm font-semibold text-slate-700">Email Address</label>
               <div className="relative flex items-center">
-                <Mail className="absolute left-4 text-slate-400" size={18} />
+                <Mail className="absolute left-3.5 text-slate-400" size={18} />
                 <input
                   type="email"
                   placeholder="clinician@pulsecare.com"
-                  className="w-full pl-11 pr-8 py-3.5 bg-white border border-slate-200 rounded-xl outline-none focus:border-[#005A51] focus:ring-2 focus:ring-[#005A51]/10 transition-all font-semibold text-slate-800 placeholder:text-slate-400/90 text-sm"
+                  className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl outline-none focus:border-[#005A51] focus:ring-2 focus:ring-[#005A51]/15 transition-all text-slate-800 placeholder:text-slate-400 text-sm font-medium"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={loading}
                   required
                 />
-                <span className="absolute -right-3 text-rose-500 font-extrabold text-lg">•</span>
               </div>
             </div>
 
             {/* Password Field */}
-            <div className="space-y-2">
-              <label className="block text-sm font-bold text-slate-700">Password</label>
+            <div className="space-y-1.5">
+              <label className="block text-sm font-semibold text-slate-700">Password</label>
               <div className="relative flex items-center">
-                <Lock className="absolute left-4 text-slate-400" size={18} />
+                <Lock className="absolute left-3.5 text-slate-400" size={18} />
                 <input
                   type={showPassword ? "text" : "password"}
                   placeholder="••••••••"
-                  className="w-full pl-11 pr-12 py-3.5 bg-white border border-slate-200 rounded-xl outline-none focus:border-[#005A51] focus:ring-2 focus:ring-[#005A51]/10 transition-all font-semibold text-slate-800 placeholder:text-slate-400/90 text-sm"
+                  className="w-full pl-10 pr-11 py-3 bg-white border border-slate-200 rounded-xl outline-none focus:border-[#005A51] focus:ring-2 focus:ring-[#005A51]/15 transition-all text-slate-800 placeholder:text-slate-400 text-sm font-medium"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   disabled={loading}
@@ -139,7 +191,7 @@ export default function Login() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 text-slate-400 hover:text-slate-600 focus:outline-none"
+                  className="absolute right-3.5 text-slate-400 hover:text-slate-600 focus:outline-none transition-colors"
                 >
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
@@ -147,22 +199,24 @@ export default function Login() {
             </div>
 
             {/* Remember Me & Forgot Password */}
-            <div className="flex justify-between items-center text-sm font-semibold">
-              <label className="flex items-center gap-2 text-slate-600 cursor-pointer">
+            <div className="flex items-center justify-between text-sm pt-1">
+              <label className="flex items-center gap-2 text-slate-600 cursor-pointer select-none">
                 <input 
                   type="checkbox" 
-                  className="w-4 h-4 rounded border-slate-300 text-[#005A51] focus:ring-[#005A51]"
+                  className="w-4 h-4 rounded border-slate-300 text-[#005A51] focus:ring-[#005A51] accent-[#005A51]"
                 />
-                <span>Remember me</span>
+                <span className="font-medium text-slate-600">Remember me</span>
               </label>
-              <a href="#forgot" className="text-[#005A51] hover:underline">Forgot password?</a>
+              <a href="#forgot" className="text-[#005A51] hover:text-[#00433C] font-semibold hover:underline">
+                Forgot password?
+              </a>
             </div>
 
-            {/* Error Message */}
+            {/* Error Display */}
             {error && (
-              <div className="flex items-center gap-2 text-rose-600 bg-rose-50 p-4 rounded-xl border border-rose-100">
-                <ShieldCheck size={18} />
-                <p className="text-sm font-bold">{error}</p>
+              <div className="flex items-center gap-2.5 text-rose-600 bg-rose-50 p-3.5 rounded-xl border border-rose-100 text-sm font-medium">
+                <ShieldCheck size={18} className="shrink-0 text-rose-500" />
+                <span>{error}</span>
               </div>
             )}
 
@@ -170,7 +224,7 @@ export default function Login() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-[#005A51] hover:bg-[#004D45] text-white font-bold py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 mt-8 shadow-sm hover:shadow-md text-sm active:scale-[0.99] disabled:opacity-70 disabled:cursor-wait"
+              className="w-full bg-[#005A51] hover:bg-[#004840] text-white font-semibold py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 mt-6 shadow-sm hover:shadow-md text-sm active:scale-[0.99] disabled:opacity-70 disabled:cursor-wait"
             >
               {loading ? (
                 <>
@@ -178,17 +232,25 @@ export default function Login() {
                 </>
               ) : (
                 <>
-                  Sign In <ArrowRight size={16} />
+                  Sign In <ArrowRight size={18} />
                 </>
               )}
             </button>
           </form>
 
-          {/* Replaced yellow box content "Contact your administrator" with "Register here" */}
-          <div className="mt-8 text-center text-sm font-semibold text-slate-500">
-            Don't have an account? <Link to="/signup" className="text-[#005A51] hover:underline font-extrabold ml-1">Register here</Link>
+          {/* Registration Redirect */}
+          <div className="text-center text-sm font-medium text-slate-500 pt-2">
+            Don't have an account?{" "}
+            <Link to="/signup" className="text-[#005A51] hover:text-[#00433C] font-semibold hover:underline">
+              Register here
+            </Link>
           </div>
         </div>
+
+        {/* Footer */}
+        <footer className="text-center text-xs text-slate-400 font-normal py-4">
+          © 2024 MedAI. Precision Healthcare Systems.
+        </footer>
       </div>
     </div>
   );

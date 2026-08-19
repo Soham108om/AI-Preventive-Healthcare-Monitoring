@@ -1,0 +1,187 @@
+{
+  "dataset": {
+    "total_records": 60000,
+    "unique_patients": 60000,
+    "missing_count": 0,
+    "duplicate_rows": 0,
+    "train_size": 42000,
+    "val_size": 9000,
+    "test_size": 9000,
+    "train_val_overlap": 0,
+    "train_test_overlap": 0,
+    "class_distribution": {
+      "HIGH": 37187,
+      "LOW": 16236,
+      "MODERATE": 6577
+    }
+  },
+  "model_params": {
+    "n_estimators": 100,
+    "max_depth": null,
+    "min_samples_split": 2,
+    "min_samples_leaf": 1,
+    "max_features": "sqrt",
+    "class_weight": null,
+    "random_state": 42,
+    "n_jobs": -1
+  },
+  "cv_results": {
+    "accuracy_mean": 1.0,
+    "accuracy_std": 0.0,
+    "f1_macro_mean": 1.0,
+    "f1_macro_std": 0.0
+  },
+  "test_results": {
+    "accuracy": 1.0,
+    "balanced_accuracy": 1.0,
+    "precision_macro": 1.0,
+    "recall_macro": 1.0,
+    "f1_macro": 1.0,
+    "f1_weighted": 1.0,
+    "macro_roc_auc": 1.0,
+    "class_metrics": {
+      "HIGH": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "specificity": 1.0,
+        "f1": 1.0,
+        "roc_auc": 1.0,
+        "tp": 5578,
+        "tn": 3422,
+        "fp": 0,
+        "fn": 0
+      },
+      "LOW": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "specificity": 1.0,
+        "f1": 1.0,
+        "roc_auc": 1.0,
+        "tp": 2436,
+        "tn": 6564,
+        "fp": 0,
+        "fn": 0
+      },
+      "MODERATE": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "specificity": 1.0,
+        "f1": 1.0,
+        "roc_auc": 1.0,
+        "tp": 986,
+        "tn": 8014,
+        "fp": 0,
+        "fn": 0
+      }
+    }
+  },
+  "baseline_comparison": {
+    "Random Forest": {
+      "accuracy": 1.0,
+      "precision_macro": 1.0,
+      "recall_macro": 1.0,
+      "f1_macro": 1.0,
+      "f1_weighted": 1.0,
+      "roc_auc_macro": 1.0
+    },
+    "Decision Tree": {
+      "accuracy": 0.9998888888888889,
+      "precision_macro": 0.9996622762580211,
+      "recall_macro": 0.9999402414246444,
+      "f1_macro": 0.9998011705764259,
+      "f1_weighted": 0.9998889120664707,
+      "roc_auc_macro": 0.9999493237736315
+    },
+    "Logistic Regression": {
+      "accuracy": 0.8905555555555555,
+      "precision_macro": 0.8136805160103671,
+      "recall_macro": 0.7720669203459462,
+      "f1_macro": 0.7865729994195979,
+      "f1_weighted": 0.883160530553604,
+      "roc_auc_macro": 0.9662071736413088
+    },
+    "XGBoost": {
+      "accuracy": 1.0,
+      "precision_macro": 1.0,
+      "recall_macro": 1.0,
+      "f1_macro": 1.0,
+      "f1_weighted": 1.0,
+      "roc_auc_macro": 1.0
+    }
+  },
+  "feature_importance": {
+    "gini": {
+      "heart_rate": 0.16199321383390153,
+      "spo2": 0.36584643251305105,
+      "systolic_bp": 0.3455781632731794,
+      "diastolic_bp": 0.12446785781562865,
+      "steps": 0.002114332564239384
+    },
+    "permutation": {
+      "heart_rate": 0.12318888888888888,
+      "spo2": 0.27127777777777784,
+      "systolic_bp": 0.3810111111111111,
+      "diastolic_bp": 0.000811111111111118,
+      "steps": 0.0
+    }
+  },
+  "robustness": {
+    "predictions_changed": 445,
+    "prediction_agreement_rate": 95.05555555555556,
+    "scenarios": [
+      {
+        "name": "Normal Healthy Patient",
+        "heart_rate": 72,
+        "spo2": 98,
+        "systolic_bp": 118,
+        "diastolic_bp": 78,
+        "steps": 7500,
+        "Predicted_Risk": "LOW"
+      },
+      {
+        "name": "Borderline Tachycardia",
+        "heart_rate": 99,
+        "spo2": 96,
+        "systolic_bp": 138,
+        "diastolic_bp": 88,
+        "steps": 5000,
+        "Predicted_Risk": "LOW"
+      },
+      {
+        "name": "High Risk Hypertensive Crisis",
+        "heart_rate": 125,
+        "spo2": 90,
+        "systolic_bp": 160,
+        "diastolic_bp": 100,
+        "steps": 1200,
+        "Predicted_Risk": "HIGH"
+      },
+      {
+        "name": "Moderate Risk Hypoxia",
+        "heart_rate": 88,
+        "spo2": 94,
+        "systolic_bp": 130,
+        "diastolic_bp": 85,
+        "steps": 3000,
+        "Predicted_Risk": "MODERATE"
+      }
+    ]
+  },
+  "calibration": {
+    "macro_brier": 4.5400000000000026e-05,
+    "per_class_brier": {
+      "HIGH": 3.8611111111111136e-05,
+      "LOW": 3.0488888888888917e-05,
+      "MODERATE": 6.710000000000003e-05
+    }
+  },
+  "latency": {
+    "model_load_time_ms": 52.45909999939613,
+    "mean_ms": 66.18644400063204,
+    "median_ms": 38.47614999540383,
+    "min_ms": 18.661200010683388,
+    "max_ms": 399.24850000534207,
+    "p95_ms": 174.90205999347367,
+    "p99_ms": 319.8971290035119
+  }
+}

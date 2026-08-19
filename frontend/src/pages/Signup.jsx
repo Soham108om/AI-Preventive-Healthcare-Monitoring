@@ -2,8 +2,8 @@ import { useState } from "react";
 import supabase from "../services/supabase";
 import { useNavigate, Link } from "react-router-dom";
 import { 
-  Activity, Mail, Lock, UserCog, User, ArrowRight, Loader2, 
-  ShieldCheck, ChevronDown, Heart, Dumbbell, CalendarDays, Eye, EyeOff 
+  ArrowRight, Loader2, ShieldCheck, ChevronDown, Eye, EyeOff,
+  CheckCircle2, Globe, Lock
 } from "lucide-react";
 
 export default function Signup() {
@@ -67,337 +67,446 @@ export default function Signup() {
     setError("");
     setLoading(true);
 
-    // 🩺 LOCAL VALIDATION FOR PATIENT PROFILE
-    if (role === "patient") {
-      if (!age || parseInt(age) <= 0) {
-        setError("Please enter a valid age.");
+    try {
+      // 🩺 JAVASCRIPT VALIDATIONS FOR MAIN USER FIELDS
+      if (!fullName || !fullName.trim()) {
+        setError("Please enter your legal name.");
         setLoading(false);
         return;
       }
-      if (!height || parseFloat(height) <= 0) {
-        setError("Please enter a valid height (cm).");
+      if (!email || !email.trim() || !email.includes("@")) {
+        setError("Please enter a valid email address.");
         setLoading(false);
         return;
       }
-      if (!weight || parseFloat(weight) <= 0) {
-        setError("Please enter a valid weight (kg).");
+      if (!password || password.length < 6) {
+        setError("Security key (password) must be at least 6 characters long.");
         setLoading(false);
         return;
       }
-      if (athleteStatus && (!restingHeartRate || parseInt(restingHeartRate) <= 0)) {
-        setError("Please enter a valid resting heart rate (BPM).");
-        setLoading(false);
-        return;
-      }
-    }
 
-    const { data, error: signupError } = await supabase.auth.signUp({
-      email,
-      password,
-    });
+      // 🩺 LOCAL VALIDATION FOR PATIENT PROFILE
+      if (role === "patient") {
+        if (!age || parseInt(age) <= 0) {
+          setError("Please enter a valid age.");
+          setLoading(false);
+          return;
+        }
+        if (!height || parseFloat(height) <= 0) {
+          setError("Please enter a valid height (cm).");
+          setLoading(false);
+          return;
+        }
+        if (!weight || parseFloat(weight) <= 0) {
+          setError("Please enter a valid weight (kg).");
+          setLoading(false);
+          return;
+        }
+        if (athleteStatus && (!restingHeartRate || parseInt(restingHeartRate) <= 0)) {
+          setError("Please enter a valid resting heart rate (BPM).");
+          setLoading(false);
+          return;
+        }
+      }
 
-    if (signupError) {
-      setError(signupError.message);
+      const { data, error: signupError } = await supabase.auth.signUp({
+        email,
+        password,
+      });
+
+      if (signupError) {
+        setError(signupError.message);
+        setLoading(false);
+        return;
+      }
+
+      const user = data.user;
+      if (!user) {
+        setError("Please check your email and try logging in.");
+        setLoading(false);
+        return;
+      }
+
+      const { error: profileError } = await supabase.from("profiles").insert({
+        id: user.id,
+        full_name: fullName,
+        role: role,
+      });
+
+      if (profileError) {
+        setError(profileError.message);
+        setLoading(false);
+        return;
+      }
+
+      // 🩺 INSERT PATIENT PROFILE DATA IF ROLE IS PATIENT
+      if (role === "patient") {
+        const historyArray = Object.keys(medicalHistory).filter(
+          (key) => key !== "None" && medicalHistory[key]
+        );
+        if (historyArray.length === 0 && medicalHistory.None) {
+          historyArray.push("None");
+        }
+
+        const { error: patientProfileError } = await supabase
+          .from("patient_profile")
+          .insert({
+            id: user.id,
+            age: parseInt(age),
+            height: parseFloat(height),
+            weight: parseFloat(weight),
+            athlete_status: athleteStatus,
+            sport_type: athleteStatus ? sportType : null,
+            training_frequency: athleteStatus ? trainingFrequency : null,
+            resting_heart_rate: athleteStatus ? parseInt(restingHeartRate) : null,
+            medical_history: historyArray,
+            smoking: smoking === "Yes",
+            alcohol: alcohol === "Yes",
+          });
+
+        if (patientProfileError) {
+          setError("Account created, but profile setup failed: " + patientProfileError.message);
+          setLoading(false);
+          return;
+        }
+      }
+
+      navigate("/login");
+    } catch (err) {
+      console.error("Signup exception caught:", err);
+      setError(err.message || err.toString());
       setLoading(false);
-      return;
     }
-
-    const user = data.user;
-    if (!user) {
-      setError("Please check your email and try logging in.");
-      setLoading(false);
-      return;
-    }
-
-    const { error: profileError } = await supabase.from("profiles").insert({
-      id: user.id,
-      full_name: fullName,
-      role: role,
-    });
-
-    if (profileError) {
-      setError(profileError.message);
-      setLoading(false);
-      return;
-    }
-
-    // 🩺 INSERT PATIENT PROFILE DATA IF ROLE IS PATIENT
-    if (role === "patient") {
-      const historyArray = Object.keys(medicalHistory).filter(
-        (key) => key !== "None" && medicalHistory[key]
-      );
-      if (historyArray.length === 0 && medicalHistory.None) {
-        historyArray.push("None");
-      }
-
-      const { error: patientProfileError } = await supabase
-        .from("patient_profile")
-        .insert({
-          id: user.id,
-          age: parseInt(age),
-          height: parseFloat(height),
-          weight: parseFloat(weight),
-          athlete_status: athleteStatus,
-          sport_type: athleteStatus ? sportType : null,
-          training_frequency: athleteStatus ? trainingFrequency : null,
-          resting_heart_rate: athleteStatus ? parseInt(restingHeartRate) : null,
-          medical_history: historyArray,
-          smoking: smoking === "Yes",
-          alcohol: alcohol === "Yes",
-        });
-
-      if (patientProfileError) {
-        setError("Account created, but profile setup failed: " + patientProfileError.message);
-        setLoading(false);
-        return;
-      }
-    }
-
-    navigate("/login");
   };
 
+  const checklistItems = [
+    "Real-Time Health Monitoring",
+    "AI-Powered Risk Assessment",
+    "Physician Verification",
+    "Secure Health Data"
+  ];
+
   return (
-    <div className="min-h-screen grid grid-cols-1 lg:grid-cols-12 bg-white font-plus overflow-hidden relative">
-      {/* Google Fonts and styles */}
+    <div className="min-h-screen bg-[#F8FAFC] font-plus text-slate-800 flex flex-col justify-between">
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap');
         .font-plus { font-family: 'Plus Jakarta Sans', sans-serif; }
         .font-outfit { font-family: 'Outfit', sans-serif; }
       `}</style>
 
-      {/* ── THE DROP-DOWN SECURE BADGE ── */}
-      <div 
-        className={`fixed top-8 left-1/2 lg:left-3/4 -translate-x-1/2 z-50 flex items-center gap-2 bg-emerald-50 border border-emerald-200 text-emerald-700 px-5 py-2.5 rounded-full text-sm font-semibold shadow-lg transition-all duration-500 ${
-          loading ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-12 pointer-events-none'
-        }`}
-      >
-        <Loader2 size={18} className="animate-spin text-emerald-600" />
-        Provisioning secure clinical profile...
-      </div>
+      {/* ── PROVISIONING STATUS BADGE ── */}
+      {loading && (
+        <div 
+          className="fixed top-5 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2.5 bg-slate-900 text-emerald-300 px-6 py-2.5 rounded-full text-xs font-semibold shadow-2xl"
+          role="status"
+          aria-live="polite"
+        >
+          <Loader2 size={16} className="animate-spin text-emerald-400" />
+          <span>Provisioning secure clinical profile...</span>
+        </div>
+      )}
 
-      {/* ── LEFT SIDE: PREMIUM MEDICAL BANNER IMAGE ── */}
-      <div className="hidden lg:block lg:col-span-6 xl:col-span-7 relative h-screen bg-slate-50 select-none">
-        <img 
-          src="/signup-image.png" 
-          alt="Medical Practice Diagnostic Banner" 
-          className="w-full h-full object-cover"
-        />
-        {/* Soft overlay gradient */}
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-transparent to-white/10" />
-      </div>
+      {/* ── MAIN SPLIT-SCREEN CONTAINER ── */}
+      <div className="min-h-screen grid grid-cols-1 lg:grid-cols-12 w-full">
 
-      {/* ── RIGHT SIDE: THE SIGNUP FORM CONTAINER ── */}
-      <div className="col-span-1 lg:col-span-6 xl:col-span-5 flex flex-col justify-center px-8 sm:px-16 lg:px-20 py-12 h-screen overflow-y-auto bg-white">
-        <div className="max-w-md w-full mx-auto my-auto">
+        {/* ── LEFT HERO SECTION (SOFT ICE-BLUE GRADIENT) ── */}
+        <div className="lg:col-span-5 bg-gradient-to-br from-[#EEF5FF] via-[#EBF3FF] to-[#E6F4F1] p-8 lg:p-12 xl:p-16 flex flex-col justify-between relative overflow-hidden">
           
-          {/* Brand Logo */}
-          <div className="flex items-center gap-2 mb-8">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#005A51" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-[#005A51]">
-              <path d="M3 10.5L12 3l9 7.5V20a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-              <line x1="12" y1="9" x2="12" y2="15" />
-              <line x1="9" y1="12" x2="15" y2="12" />
-            </svg>
-            <span className="text-2xl font-extrabold text-slate-900 tracking-tight font-outfit">MedAI</span>
+          {/* Top Logo */}
+          <div className="z-10">
+            <Link to="/" className="inline-flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-[#10B981] flex items-center justify-center shadow-xs">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 5v14M5 12h14" />
+                </svg>
+              </div>
+              <span className="text-2xl font-bold text-slate-900 font-outfit tracking-tight">MedAI</span>
+            </Link>
           </div>
 
-          {/* Form Header */}
-          <header className="mb-8">
-            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight font-outfit">Create Account</h1>
-            <p className="mt-2 text-slate-500 font-semibold text-sm">Create your secure clinical or patient profile.</p>
-          </header>
+          {/* Main Headline & Checklist */}
+          <div className="my-auto py-10 z-10 max-w-lg">
+            <h1 className="text-4xl sm:text-5xl font-extrabold text-slate-900 tracking-tight leading-[1.12] font-outfit">
+              Smarter health, <br />
+              connected care.
+            </h1>
 
-          {/* Form */}
-          <form onSubmit={handleSignup} className="space-y-6">
+            <p className="mt-4 text-slate-600 text-base font-medium leading-relaxed">
+              Join the future of personalized healthcare. MedAI provides continuous intelligence for proactive wellness management.
+            </p>
+
+            {/* Checklist */}
+            <div className="mt-8 space-y-3">
+              {checklistItems.map((item, idx) => (
+                <div key={idx} className="flex items-center gap-3">
+                  <div className="w-5 h-5 rounded-full border-2 border-[#10B981] flex items-center justify-center text-[#10B981] shrink-0">
+                    <CheckCircle2 size={13} strokeWidth={3} />
+                  </div>
+                  <span className="text-sm font-semibold text-slate-700">{item}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 3D Decorative Graphic Accents on the right edge */}
+          <div className="absolute right-[-40px] top-[40%] translate-y-[-50%] pointer-events-none opacity-90 hidden sm:block">
+            <div className="relative w-64 h-64">
+              <div className="absolute w-44 h-44 rounded-full bg-gradient-to-br from-[#10B981] to-[#06B6D4] opacity-80 blur-0 shadow-xl right-0 top-10" />
+              <div className="absolute w-32 h-32 rounded-full border-[10px] border-[#0A2540] opacity-80 left-0 top-0" />
+              <div className="absolute w-12 h-12 bg-[#38BDF8] rotate-45 rounded-lg bottom-4 right-16 opacity-70" />
+            </div>
+          </div>
+
+          {/* Left Footer */}
+          <div className="z-10 pt-6">
+            <p className="text-xs font-medium text-slate-400">
+              © 2024 MedAI Solutions. All rights reserved.
+            </p>
+          </div>
+        </div>
+
+        {/* ── RIGHT SIGNUP FORM CONTAINER ── */}
+        <div className="lg:col-span-7 bg-[#F8FAFC] p-4 sm:p-8 lg:p-12 flex flex-col justify-center items-center">
+          
+          {/* Card Container */}
+          <div className="bg-white border border-slate-200/80 rounded-3xl p-6 sm:p-10 shadow-xl shadow-slate-200/50 max-w-xl w-full my-auto">
             
-            {/* Legal Name Field */}
-            <div className="space-y-2">
-              <label className="block text-sm font-bold text-slate-700">Legal Name</label>
-              <div className="relative flex items-center">
-                <User className="absolute left-4 text-slate-400" size={18} />
-                <input
-                  type="text"
-                  placeholder="John Doe"
-                  className="w-full pl-11 pr-8 py-3.5 bg-white border border-slate-200 rounded-xl outline-none focus:border-[#005A51] focus:ring-2 focus:ring-[#005A51]/10 transition-all font-semibold text-slate-800 placeholder:text-slate-400/90 text-sm"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  disabled={loading}
-                  required
-                />
-                <span className="absolute -right-3 text-rose-500 font-extrabold text-lg">•</span>
-              </div>
-            </div>
-
-            {/* Email Field */}
-            <div className="space-y-2">
-              <label className="block text-sm font-bold text-slate-700">Email Address</label>
-              <div className="relative flex items-center">
-                <Mail className="absolute left-4 text-slate-400" size={18} />
-                <input
-                  type="email"
-                  placeholder="name@medai.com"
-                  className="w-full pl-11 pr-8 py-3.5 bg-white border border-slate-200 rounded-xl outline-none focus:border-[#005A51] focus:ring-2 focus:ring-[#005A51]/10 transition-all font-semibold text-slate-800 placeholder:text-slate-400/90 text-sm"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  disabled={loading}
-                  required
-                />
-                <span className="absolute -right-3 text-rose-500 font-extrabold text-lg">•</span>
-              </div>
-            </div>
-
-            {/* Password Field */}
-            <div className="space-y-2">
-              <label className="block text-sm font-bold text-slate-700">Security Key</label>
-              <div className="relative flex items-center">
-                <Lock className="absolute left-4 text-slate-400" size={18} />
-                <input
-                  type={showPassword ? "text" : "password"}
-                  placeholder="••••••••"
-                  className="w-full pl-11 pr-12 py-3.5 bg-white border border-slate-200 rounded-xl outline-none focus:border-[#005A51] focus:ring-2 focus:ring-[#005A51]/10 transition-all font-semibold text-slate-800 placeholder:text-slate-400/90 text-sm"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  disabled={loading}
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 text-slate-400 hover:text-slate-600 focus:outline-none"
-                >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-                <span className="absolute -right-3 text-rose-500 font-extrabold text-lg">•</span>
-              </div>
-
-              {/* Password strength meter */}
-              {password && (
-                <div className="mt-2 space-y-1.5 px-1 animate-in fade-in duration-200">
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="text-slate-500 font-semibold">Password Strength:</span>
-                    <span className={`font-bold ${getPasswordStrength(password).text}`}>
-                      {getPasswordStrength(password).label}
-                    </span>
-                  </div>
-                  <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                    <div 
-                      className={`h-full transition-all duration-300 ${getPasswordStrength(password).color}`}
-                      style={{ width: `${(getPasswordStrength(password).score / 4) * 100}%` }}
-                    />
-                  </div>
+            {/* Card Header */}
+            <header className="mb-6 pb-4 border-b border-slate-100 relative">
+              <div className="flex items-start justify-between">
+                <div>
+                  <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight font-outfit">
+                    Create your account
+                  </h2>
+                  <p className="mt-1 text-slate-500 font-medium text-sm">
+                    Create your secure MedAI patient profile.
+                  </p>
                 </div>
-              )}
-            </div>
-
-            {/* Role Select */}
-            <div className="space-y-2">
-              <label className="block text-sm font-bold text-slate-700">Profile Role</label>
-              <div className="relative flex items-center">
-                <UserCog className="absolute left-4 text-slate-400" size={18} />
-                <select
-                  className="w-full pl-11 pr-10 py-3.5 bg-white border border-slate-200 rounded-xl outline-none focus:border-[#005A51] focus:ring-2 focus:ring-[#005A51]/10 transition-all font-bold text-slate-800 appearance-none cursor-pointer disabled:opacity-50 text-sm"
-                  value={role}
-                  onChange={(e) => setRole(e.target.value)}
-                  disabled={loading}
-                >
-                  <option value="patient">Patient Account</option>
-                  <option value="doctor">Licensed Physician</option>
-                </select>
-                <div className="absolute right-4 flex items-center pointer-events-none text-slate-400">
-                  <ChevronDown size={18} />
-                </div>
-              </div>
-            </div>
-
-            {/* 🩺 PATIENT PERSONALIZED HEALTH PROFILE FIELDS */}
-            {role === "patient" && (
-              <div className="space-y-6 pt-4 border-t border-slate-100 animate-in fade-in duration-300">
                 
-                {/* 1. Personal Information Group */}
-                <div className="bg-slate-50 border border-slate-100 rounded-2xl p-5 space-y-4 shadow-sm">
-                  <h3 className="text-sm font-bold text-[#005A51] uppercase tracking-wider border-b border-slate-200/60 pb-2 flex items-center gap-2 font-outfit">
-                    <Heart size={16} /> Personal Information
-                  </h3>
-                  <div className="grid grid-cols-3 gap-3">
-                    
-                    {/* Age */}
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-slate-700">Age</label>
-                      <input
-                        type="number"
-                        placeholder="30"
-                        min="1"
-                        className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl outline-none focus:border-[#005A51] focus:ring-2 focus:ring-[#005A51]/10 transition-all font-semibold text-slate-800 placeholder:text-slate-400/90 text-sm"
-                        value={age}
-                        onChange={(e) => setAge(e.target.value)}
-                        required={role === "patient"}
-                        disabled={loading}
-                      />
-                    </div>
+                {/* Language pill badge */}
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 border border-slate-200 px-2.5 py-1 rounded-full shrink-0">
+                  <Globe size={13} /> EN
+                </div>
+              </div>
+            </header>
 
-                    {/* Height */}
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-slate-700">Height (cm)</label>
-                      <input
-                        type="number"
-                        placeholder="175"
-                        min="1"
-                        className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl outline-none focus:border-[#005A51] focus:ring-2 focus:ring-[#005A51]/10 transition-all font-semibold text-slate-800 placeholder:text-slate-400/90 text-sm"
-                        value={height}
-                        onChange={(e) => setHeight(e.target.value)}
-                        required={role === "patient"}
-                        disabled={loading}
-                      />
-                    </div>
+            {/* Signup Form */}
+            <form onSubmit={handleSignup} className="space-y-5">
+              
+              {/* SECTION 1: ACCOUNT DETAILS */}
+              <div>
+                <h3 className="text-[11px] font-extrabold tracking-wider text-slate-400 uppercase mb-3">
+                  Account Details
+                </h3>
 
-                    {/* Weight */}
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-slate-700">Weight (kg)</label>
-                      <input
-                        type="number"
-                        placeholder="70"
-                        min="1"
-                        step="0.1"
-                        className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl outline-none focus:border-[#005A51] focus:ring-2 focus:ring-[#005A51]/10 transition-all font-semibold text-slate-800 placeholder:text-slate-400/90 text-sm"
-                        value={weight}
-                        onChange={(e) => setWeight(e.target.value)}
-                        required={role === "patient"}
-                        disabled={loading}
-                      />
-                    </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 mb-3.5">
+                  {/* Full Name */}
+                  <div className="space-y-1">
+                    <label className="block text-xs font-semibold text-slate-600">Full Name</label>
+                    <input
+                      type="text"
+                      placeholder="Jane Doe"
+                      className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl outline-none focus:border-[#10B981] focus:ring-2 focus:ring-[#10B981]/15 font-semibold text-slate-800 placeholder:text-slate-400 text-sm"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      disabled={loading}
+                      required
+                    />
+                  </div>
 
+                  {/* Email Address */}
+                  <div className="space-y-1">
+                    <label className="block text-xs font-semibold text-slate-600">Email Address</label>
+                    <input
+                      type="email"
+                      placeholder="jane@example.com"
+                      className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl outline-none focus:border-[#10B981] focus:ring-2 focus:ring-[#10B981]/15 font-semibold text-slate-800 placeholder:text-slate-400 text-sm"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      disabled={loading}
+                      required
+                    />
                   </div>
                 </div>
 
-                {/* 2. Lifestyle Profile Group */}
-                <div className="bg-slate-50 border border-slate-100 rounded-2xl p-5 space-y-4 shadow-sm">
-                  <h3 className="text-sm font-bold text-[#005A51] uppercase tracking-wider border-b border-slate-200/60 pb-2 flex items-center gap-2 font-outfit">
-                    <Dumbbell size={16} /> Lifestyle Profile
-                  </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                  {/* Password */}
+                  <div className="space-y-1">
+                    <label className="block text-xs font-semibold text-slate-600">Password</label>
+                    <div className="relative flex items-center">
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        placeholder="••••••••"
+                        className="w-full pl-3.5 pr-10 py-2.5 bg-white border border-slate-200 rounded-xl outline-none focus:border-[#10B981] focus:ring-2 focus:ring-[#10B981]/15 font-semibold text-slate-800 placeholder:text-slate-400 text-sm"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        disabled={loading}
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 text-slate-400 hover:text-slate-600 focus:outline-none p-1"
+                        aria-label={showPassword ? "Hide password" : "Show password"}
+                      >
+                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
 
-                  {/* Athlete Switch */}
-                  <div className="flex items-center gap-3 bg-white border border-slate-200 rounded-xl p-3.5 shadow-sm">
-                    <input
-                      type="checkbox"
-                      id="athlete-checkbox"
-                      className="w-4.5 h-4.5 rounded text-[#005A51] focus:ring-[#005A51]/10 border-slate-300 accent-[#005A51] cursor-pointer"
-                      checked={athleteStatus}
-                      onChange={(e) => setAthleteStatus(e.target.checked)}
-                      disabled={loading}
-                    />
-                    <label htmlFor="athlete-checkbox" className="text-sm font-bold text-slate-700 cursor-pointer select-none">
-                      Are you an Athlete?
-                    </label>
+                    {/* Password Strength Indicator */}
+                    {password && (
+                      <div className="mt-1 space-y-1">
+                        <div className="flex justify-between items-center text-[10px]">
+                          <span className="text-slate-500 font-semibold">Password Strength:</span>
+                          <span className={`font-bold ${getPasswordStrength(password).text}`}>
+                            {getPasswordStrength(password).label}
+                          </span>
+                        </div>
+                        <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                          <div 
+                            className={`h-full ${getPasswordStrength(password).color}`}
+                            style={{ width: `${(getPasswordStrength(password).score / 4) * 100}%` }}
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
 
-                  {/* Conditional Athlete Fields */}
-                  {athleteStatus && (
-                    <div className="space-y-4 bg-white border border-teal-100 rounded-xl p-4 animate-in slide-in-from-top-2 duration-200">
-                      
+                  {/* Profile Role */}
+                  <div className="space-y-1">
+                    <label className="block text-xs font-semibold text-slate-600">Role</label>
+                    <div className="relative flex items-center">
+                      <select
+                        className="w-full pl-3.5 pr-9 py-2.5 bg-white border border-slate-200 rounded-xl outline-none focus:border-[#10B981] focus:ring-2 focus:ring-[#10B981]/15 font-semibold text-slate-800 appearance-none cursor-pointer disabled:opacity-50 text-sm"
+                        value={role}
+                        onChange={(e) => setRole(e.target.value)}
+                        disabled={loading}
+                      >
+                        <option value="patient">Patient</option>
+                        <option value="doctor">Licensed Physician</option>
+                      </select>
+                      <div className="absolute right-3 flex items-center pointer-events-none text-slate-400">
+                        <ChevronDown size={16} />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 🩺 PATIENT PROFILE FIELDS */}
+              {role === "patient" && (
+                <div className="space-y-5 pt-2">
+                  
+                  {/* SECTION 2: VITALS & METRICS */}
+                  <div>
+                    <h3 className="text-[11px] font-extrabold tracking-wider text-slate-400 uppercase mb-3">
+                      Vitals & Metrics
+                    </h3>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      {/* Age */}
                       <div className="space-y-1">
-                        <label className="text-xs font-bold text-slate-700">Sport Type</label>
+                        <label className="block text-xs font-semibold text-slate-600">Age</label>
+                        <input
+                          type="number"
+                          placeholder="Years"
+                          min="1"
+                          className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl outline-none focus:border-[#10B981] focus:ring-2 focus:ring-[#10B981]/15 font-semibold text-slate-800 placeholder:text-slate-400 text-sm"
+                          value={age}
+                          onChange={(e) => setAge(e.target.value)}
+                          disabled={loading}
+                        />
+                      </div>
+
+                      {/* Height */}
+                      <div className="space-y-1">
+                        <label className="block text-xs font-semibold text-slate-600">Height</label>
                         <div className="relative flex items-center">
+                          <input
+                            type="number"
+                            placeholder="0"
+                            min="1"
+                            className="w-full pl-3.5 pr-8 py-2.5 bg-white border border-slate-200 rounded-xl outline-none focus:border-[#10B981] focus:ring-2 focus:ring-[#10B981]/15 font-semibold text-slate-800 placeholder:text-slate-400 text-sm"
+                            value={height}
+                            onChange={(e) => setHeight(e.target.value)}
+                            disabled={loading}
+                          />
+                          <span className="absolute right-3 text-xs font-semibold text-slate-400 pointer-events-none">cm</span>
+                        </div>
+                      </div>
+
+                      {/* Weight */}
+                      <div className="space-y-1">
+                        <label className="block text-xs font-semibold text-slate-600">Weight</label>
+                        <div className="relative flex items-center">
+                          <input
+                            type="number"
+                            placeholder="0"
+                            min="1"
+                            step="0.1"
+                            className="w-full pl-3.5 pr-8 py-2.5 bg-white border border-slate-200 rounded-xl outline-none focus:border-[#10B981] focus:ring-2 focus:ring-[#10B981]/15 font-semibold text-slate-800 placeholder:text-slate-400 text-sm"
+                            value={weight}
+                            onChange={(e) => setWeight(e.target.value)}
+                            disabled={loading}
+                          />
+                          <span className="absolute right-3 text-xs font-semibold text-slate-400 pointer-events-none">kg</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* SECTION 3: LIFESTYLE FACTORS */}
+                  <div>
+                    <h3 className="text-[11px] font-extrabold tracking-wider text-slate-400 uppercase mb-3">
+                      Lifestyle Factors
+                    </h3>
+
+                    <div className="flex flex-wrap items-center gap-6">
+                      {/* Athlete Toggle */}
+                      <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                        <div 
+                          className={`w-11 h-6 rounded-full p-0.5 transition-colors ${athleteStatus ? 'bg-[#10B981]' : 'bg-slate-200'}`}
+                          onClick={() => !loading && setAthleteStatus(!athleteStatus)}
+                        >
+                          <div className={`w-5 h-5 rounded-full bg-white shadow-xs transition-transform ${athleteStatus ? 'translate-x-5' : 'translate-x-0'}`} />
+                        </div>
+                        <span className="text-xs font-semibold text-slate-700">Athlete</span>
+                      </label>
+
+                      {/* Smoking Select / Toggle */}
+                      <div className="flex items-center gap-2">
+                        <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                          <div 
+                            className={`w-11 h-6 rounded-full p-0.5 transition-colors ${smoking === "Yes" ? 'bg-[#10B981]' : 'bg-slate-200'}`}
+                            onClick={() => !loading && setSmoking(smoking === "Yes" ? "No" : "Yes")}
+                          >
+                            <div className={`w-5 h-5 rounded-full bg-white shadow-xs transition-transform ${smoking === "Yes" ? 'translate-x-5' : 'translate-x-0'}`} />
+                          </div>
+                          <span className="text-xs font-semibold text-slate-700">Smoking</span>
+                        </label>
+                      </div>
+
+                      {/* Alcohol Select / Toggle */}
+                      <div className="flex items-center gap-2">
+                        <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                          <div 
+                            className={`w-11 h-6 rounded-full p-0.5 transition-colors ${alcohol === "Yes" ? 'bg-[#10B981]' : 'bg-slate-200'}`}
+                            onClick={() => !loading && setAlcohol(alcohol === "Yes" ? "No" : "Yes")}
+                          >
+                            <div className={`w-5 h-5 rounded-full bg-white shadow-xs transition-transform ${alcohol === "Yes" ? 'translate-x-5' : 'translate-x-0'}`} />
+                          </div>
+                          <span className="text-xs font-semibold text-slate-700">Alcohol</span>
+                        </label>
+                      </div>
+                    </div>
+
+                    {/* Conditional Athlete Fields */}
+                    {athleteStatus && (
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-slate-50 border border-slate-200/70 rounded-2xl p-3.5 mt-3">
+                        <div className="space-y-1">
+                          <label className="text-[11px] font-semibold text-slate-600">Sport Type</label>
                           <select
-                            className="w-full pl-3 pr-10 py-2.5 bg-white border border-slate-200 rounded-xl outline-none focus:border-[#005A51] focus:ring-2 focus:ring-[#005A51]/10 transition-all font-bold text-slate-800 appearance-none cursor-pointer text-sm"
+                            className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 outline-none focus:border-[#10B981]"
                             value={sportType}
                             onChange={(e) => setSportType(e.target.value)}
                             disabled={loading}
@@ -410,17 +519,12 @@ export default function Signup() {
                             <option value="Gym">Gym</option>
                             <option value="Other">Other</option>
                           </select>
-                          <div className="absolute right-4 flex items-center pointer-events-none text-slate-400">
-                            <ChevronDown size={16} />
-                          </div>
                         </div>
-                      </div>
 
-                      <div className="space-y-1">
-                        <label className="text-xs font-bold text-slate-700">Training Frequency</label>
-                        <div className="relative flex items-center">
+                        <div className="space-y-1">
+                          <label className="text-[11px] font-semibold text-slate-600">Training Freq.</label>
                           <select
-                            className="w-full pl-3 pr-10 py-2.5 bg-white border border-slate-200 rounded-xl outline-none focus:border-[#005A51] focus:ring-2 focus:ring-[#005A51]/10 transition-all font-bold text-slate-800 appearance-none cursor-pointer text-sm"
+                            className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 outline-none focus:border-[#10B981]"
                             value={trainingFrequency}
                             onChange={(e) => setTrainingFrequency(e.target.value)}
                             disabled={loading}
@@ -429,162 +533,113 @@ export default function Signup() {
                             <option value="3–5 Days/Week">3–5 Days/Week</option>
                             <option value="Occasionally">Occasionally</option>
                           </select>
-                          <div className="absolute right-4 flex items-center pointer-events-none text-slate-400">
-                            <ChevronDown size={16} />
-                          </div>
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="text-[11px] font-semibold text-slate-600">Resting HR (BPM)</label>
+                          <input
+                            type="number"
+                            placeholder="60"
+                            min="1"
+                            className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-800 outline-none focus:border-[#10B981]"
+                            value={restingHeartRate}
+                            onChange={(e) => setRestingHeartRate(e.target.value)}
+                            disabled={loading}
+                          />
                         </div>
                       </div>
-
-                      <div className="space-y-1">
-                        <label className="text-xs font-bold text-slate-700">Resting Heart Rate (BPM)</label>
-                        <input
-                          type="number"
-                          placeholder="60"
-                          min="1"
-                          className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl outline-none focus:border-[#005A51] focus:ring-2 focus:ring-[#005A51]/10 transition-all font-semibold text-slate-800 placeholder:text-slate-400/90 text-sm"
-                          value={restingHeartRate}
-                          onChange={(e) => setRestingHeartRate(e.target.value)}
-                          required={athleteStatus}
-                          disabled={loading}
-                        />
-                      </div>
-
-                    </div>
-                  )}
-
-                  {/* Smoking & Alcohol */}
-                  <div className="grid grid-cols-2 gap-3">
-                    
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-slate-700">Smoking</label>
-                      <div className="relative flex items-center">
-                        <select
-                          className="w-full pl-3 pr-10 py-2.5 bg-white border border-slate-200 rounded-xl outline-none focus:border-[#005A51] focus:ring-2 focus:ring-[#005A51]/10 transition-all font-bold text-slate-800 appearance-none cursor-pointer text-sm"
-                          value={smoking}
-                          onChange={(e) => setSmoking(e.target.value)}
-                          disabled={loading}
-                        >
-                          <option value="No">No</option>
-                          <option value="Yes">Yes</option>
-                        </select>
-                        <div className="absolute right-4 flex items-center pointer-events-none text-slate-400">
-                          <ChevronDown size={16} />
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-slate-700">Alcohol</label>
-                      <div className="relative flex items-center">
-                        <select
-                          className="w-full pl-3 pr-10 py-2.5 bg-white border border-slate-200 rounded-xl outline-none focus:border-[#005A51] focus:ring-2 focus:ring-[#005A51]/10 transition-all font-bold text-slate-800 appearance-none cursor-pointer text-sm"
-                          value={alcohol}
-                          onChange={(e) => setAlcohol(e.target.value)}
-                          disabled={loading}
-                        >
-                          <option value="No">No</option>
-                          <option value="Yes">Yes</option>
-                        </select>
-                        <div className="absolute right-4 flex items-center pointer-events-none text-slate-400">
-                          <ChevronDown size={16} />
-                        </div>
-                      </div>
-                    </div>
-
+                    )}
                   </div>
-                </div>
 
-                {/* 3. Medical History Group */}
-                <div className="bg-slate-50 border border-slate-100 rounded-2xl p-5 space-y-4 shadow-sm">
-                  <h3 className="text-sm font-bold text-[#005A51] uppercase tracking-wider border-b border-slate-200/60 pb-2 flex items-center gap-2 font-outfit">
-                    <ShieldCheck size={16} /> Medical History
-                  </h3>
-                  <div className="grid grid-cols-2 gap-2">
-                    {Object.keys(medicalHistory).map((condition) => (
-                      <div 
-                        key={condition} 
-                        className={`flex items-center gap-2 p-2.5 rounded-xl border transition-all cursor-pointer select-none text-sm ${
-                          medicalHistory[condition] 
-                            ? 'bg-teal-50/50 border-[#005A51] text-[#005A51]' 
-                            : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
-                        }`}
-                        onClick={() => {
-                          if (loading) return;
-                          const key = condition;
-                          setMedicalHistory(prev => {
-                            if (key === "None") {
-                              return { Diabetes: false, Hypertension: false, HeartDisease: false, Asthma: false, None: true };
-                            } else {
-                              const next = { ...prev, [key]: !prev[key], None: false };
-                              const anyChecked = Object.keys(next).some(k => k !== "None" && next[k]);
-                              if (!anyChecked) next.None = true;
-                              return next;
-                            }
-                          });
-                        }}
-                      >
-                        <input
-                          type="checkbox"
-                          className="w-4 h-4 rounded text-[#005A51] focus:ring-[#005A51]/10 border-slate-300 cursor-pointer accent-[#005A51] pointer-events-none"
-                          checked={medicalHistory[condition]}
-                          readOnly
-                        />
-                        <span className="font-semibold text-xs">{condition === 'HeartDisease' ? 'Heart Disease' : condition}</span>
-                      </div>
-                    ))}
+                  {/* SECTION 4: PRE-EXISTING CONDITIONS */}
+                  <div>
+                    <h3 className="text-[11px] font-extrabold tracking-wider text-slate-400 uppercase mb-3">
+                      Pre-Existing Conditions
+                    </h3>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      {Object.keys(medicalHistory).map((condition) => {
+                        const isChecked = medicalHistory[condition];
+                        return (
+                          <label 
+                            key={condition} 
+                            className="flex items-center gap-2.5 cursor-pointer select-none text-xs font-semibold text-slate-700"
+                            onClick={() => {
+                              if (loading) return;
+                              const key = condition;
+                              setMedicalHistory(prev => {
+                                if (key === "None") {
+                                  return { Diabetes: false, Hypertension: false, HeartDisease: false, Asthma: false, None: true };
+                                } else {
+                                  const next = { ...prev, [key]: !prev[key], None: false };
+                                  const anyChecked = Object.keys(next).some(k => k !== "None" && next[k]);
+                                  if (!anyChecked) next.None = true;
+                                  return next;
+                                }
+                              });
+                            }}
+                          >
+                            <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${
+                              isChecked ? 'bg-[#10B981] border-[#10B981] text-white' : 'border-slate-300 bg-white'
+                            }`}>
+                              {isChecked && <CheckCircle2 size={12} strokeWidth={3} />}
+                            </div>
+                            <span>{condition === 'HeartDisease' ? 'Heart Disease' : condition}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
                   </div>
+
                 </div>
+              )}
 
+              {/* Error Banner */}
+              {error && (
+                <div className="flex items-start gap-2.5 text-rose-700 bg-rose-50 p-3 rounded-xl border border-rose-200 text-xs font-bold" role="alert">
+                  <ShieldCheck size={16} className="shrink-0 mt-0.5 text-rose-600" />
+                  <p>{error}</p>
+                </div>
+              )}
+
+              {/* SECTION 5: HIPAA NOTICE */}
+              <div className="flex items-start gap-2.5 bg-slate-50/90 border border-slate-100 p-3 rounded-xl text-[11px] text-slate-500 font-medium leading-relaxed">
+                <Lock size={13} className="shrink-0 mt-0.5 text-slate-400" />
+                <p>
+                  Your health data is encrypted and protected under HIPAA compliance. We do not share your personal information without explicit consent.
+                </p>
               </div>
-            )}
 
-            {/* Error Message */}
-            {error && (
-              <div className="flex items-center gap-2 text-rose-600 bg-rose-50 p-4 rounded-xl border border-rose-100 animate-in fade-in duration-200">
-                <ShieldCheck size={18} />
-                <p className="text-sm font-bold">{error}</p>
-              </div>
-            )}
+              {/* Submit Button */}
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-[#10B981] hover:bg-[#059669] text-white font-bold py-3.5 px-5 rounded-xl transition-colors flex items-center justify-center gap-2 text-sm shadow-sm active:scale-[0.99] disabled:opacity-75 disabled:cursor-wait"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 size={18} className="animate-spin" /> Provisioning Account...
+                  </>
+                ) : (
+                  <>
+                    Create Account <ArrowRight size={16} />
+                  </>
+                )}
+              </button>
 
-            {/* HIPAA Compliance note */}
-            <div className="flex items-start gap-2 bg-slate-50 border border-slate-100 rounded-xl p-3.5 text-xs text-slate-500 font-medium">
-              <span className="text-[#005A51] mt-0.5 text-sm">🔒</span>
-              <p className="leading-relaxed">
-                <strong className="text-slate-700">HIPAA Protected connection:</strong> All clinical data is encrypted in transit and at rest using standard healthcare privacy protocols.
-              </p>
+            </form>
+
+            {/* Log in Footer link */}
+            <div className="mt-6 text-center text-xs font-medium text-slate-500">
+              Already have an account?{" "}
+              <Link to="/login" className="text-[#10B981] hover:underline font-bold ml-0.5">
+                Log in
+              </Link>
             </div>
 
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-[#005A51] hover:bg-[#004D45] text-white font-bold py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 mt-8 shadow-sm hover:shadow-md text-sm active:scale-[0.99] disabled:opacity-70 disabled:cursor-wait"
-            >
-              {loading ? (
-                <>
-                  <Loader2 size={18} className="animate-spin" /> Provisioning...
-                </>
-              ) : (
-                <>
-                  Create Account <ArrowRight size={16} />
-                </>
-              )}
-            </button>
-          </form>
-
-          {/* Already have an account? */}
-          <div className="mt-8 text-center text-sm font-semibold text-slate-500">
-            Already have an account? <Link to="/login" className="text-[#005A51] hover:underline font-extrabold ml-1">Sign In</Link>
           </div>
-
-          {/* Footer Trust Badges */}
-          <div className="mt-8 pt-6 border-t border-slate-100 text-[11px] font-extrabold text-slate-400 uppercase tracking-widest flex items-center justify-center gap-4">
-            <span className="flex items-center gap-1.5"><ShieldCheck size={14} /> SECURED ECOSYSTEM</span>
-            <div className="w-1 h-1 bg-slate-300 rounded-full" />
-            <span>V1.2.0</span>
-          </div>
-
         </div>
+
       </div>
     </div>
   );
