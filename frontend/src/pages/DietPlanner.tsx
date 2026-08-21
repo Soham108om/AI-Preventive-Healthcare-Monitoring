@@ -13,6 +13,7 @@ import { UserProfile, SmartwatchVitals, UserInputs, DietPlanOutput } from "../se
 import { generateNutritionRecommendations } from "../services/nutrition/NutritionRecommendationService";
 import { fetchNutritionExplanation, GeminiExplanation } from "../services/nutrition/NutritionExplanationService";
 import { formatEvidenceLevel } from "../services/nutrition/NutritionUtils";
+import MedAILogo from "../components/MedAILogo";
 
 export default function DietPlanner() {
   const navigate = useNavigate();
@@ -149,15 +150,7 @@ export default function DietPlanner() {
       {/* SIDEBAR */}
       <aside className="hidden lg:flex flex-col w-72 bg-[#EAF5F2]/90 backdrop-blur-sm border-r border-[#DCE9E6] p-6 fixed h-full z-30 justify-between">
         <div className="space-y-6">
-          <div className="flex items-center gap-3 pt-1">
-            <div className="bg-[#007F73] p-2.5 rounded-2xl shadow-md text-white">
-              <Activity size={22} strokeWidth={2.5} />
-            </div>
-            <div>
-              <span className="font-extrabold text-xl text-[#173B3A] tracking-tight block leading-none">MedAI</span>
-              <span className="text-[10px] font-bold uppercase tracking-widest text-[#657977] mt-1 block">Clinical Support</span>
-            </div>
-          </div>
+          <MedAILogo tagline="Clinical Support" size="lg" className="pt-1" />
 
           <nav className="space-y-1.5 pt-2">
             <button 

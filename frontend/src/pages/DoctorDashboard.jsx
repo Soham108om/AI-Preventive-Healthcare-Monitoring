@@ -6,6 +6,7 @@ import {
   LogOut, LayoutDashboard, ChevronRight, ShieldCheck
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import MedAILogo from "../components/MedAILogo";
 
 export default function DoctorDashboard() {
   const [reports, setReports] = useState([]);
@@ -95,12 +96,7 @@ export default function DoctorDashboard() {
 
       {/* ── SIDEBAR (Premium Clinical Style) ── */}
       <aside className="hidden lg:flex flex-col w-80 bg-slate-50 border-r border-slate-200 p-8 fixed h-full">
-        <div className="flex items-center gap-3 mb-12">
-          <div className="bg-blue-600 p-2 rounded-xl shadow-lg shadow-blue-200">
-            <Activity className="text-white" size={24} />
-          </div>
-          <span className="serif text-2xl text-slate-900">MedAI</span>
-        </div>
+        <MedAILogo tagline="Physician Portal" size="lg" className="mb-12" />
 
         <nav className="flex-1 space-y-2">
           <button onClick={() => setActiveTab("triage")} className={`w-full flex items-center justify-between p-4 rounded-2xl font-bold text-sm ${activeTab === 'triage' ? 'bg-white text-blue-600 shadow-sm border border-slate-200' : 'text-slate-400 hover:bg-slate-100 hover:text-slate-600'}`}>

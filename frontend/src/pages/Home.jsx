@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
+import MedAILogo from "../components/MedAILogo";
 import {
   Activity, ShieldCheck, Check, Star, ArrowRight, Search,
   Heart, Brain, Stethoscope, Smile, Sparkles, Layers,
@@ -207,14 +208,7 @@ export default function Home() {
       }`}>
         <div className="max-w-7xl mx-auto px-6 lg:px-8 flex justify-between items-center">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#005A51" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M3 10.5L12 3l9 7.5V20a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-              <line x1="12" y1="9" x2="12" y2="15" />
-              <line x1="9" y1="12" x2="15" y2="12" />
-            </svg>
-            <span className="text-2xl font-extrabold text-slate-900 tracking-tight font-outfit">MedAI</span>
-          </Link>
+          <MedAILogo to="/" size="md" />
 
           {/* Navigation Links */}
           <div className="hidden md:flex items-center gap-8 font-semibold text-slate-600 text-sm">
@@ -576,10 +570,7 @@ export default function Home() {
                     <div className="p-4 flex flex-col gap-3 h-full justify-between">
                       {/* Logo and Greeting */}
                       <div className="flex items-center gap-1.5 mt-1">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#005A51" strokeWidth="3">
-                          <path d="M3 10.5L12 3l9 7.5V20a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-                        </svg>
-                        <span className="text-[11px] font-extrabold text-slate-900 font-outfit">MedAI</span>
+                        <MedAILogo size="xs" />
                       </div>
 
                       {/* Pill Cards */}
@@ -640,14 +631,7 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8 lg:gap-12 pb-12">
             {/* Brand Block */}
             <div className="lg:col-span-5 flex flex-col items-start">
-              <Link to="/" className="flex items-center gap-2">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#005A51" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M3 10.5L12 3l9 7.5V20a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-                  <line x1="12" y1="9" x2="12" y2="15" />
-                  <line x1="9" y1="12" x2="15" y2="12" />
-                </svg>
-                <span className="text-2xl font-extrabold text-slate-900 tracking-tight font-outfit">MedAI</span>
-              </Link>
+              <MedAILogo to="/" size="md" />
               <p className="mt-4 text-slate-500 text-sm font-semibold leading-relaxed max-w-sm">
                 Empowering patients with precision healthcare through advanced technology and empathetic care teams.
               </p>

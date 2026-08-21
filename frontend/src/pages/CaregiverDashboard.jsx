@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import supabase from "../services/supabase";
+import MedAILogo from "../components/MedAILogo";
 
 export default function CaregiverDashboard() {
   const navigate = useNavigate();
@@ -39,10 +40,7 @@ export default function CaregiverDashboard() {
       `}</style>
       
       <aside className="hidden lg:flex flex-col w-72 bg-white border-r border-slate-200 p-8 fixed h-full">
-        <div className="flex items-center gap-3 mb-12">
-          <div className="bg-purple-600 p-2 rounded-xl shadow-lg"><HeartPulse className="text-white" size={24} /></div>
-          <span className="serif text-2xl">CareSync</span>
-        </div>
+        <MedAILogo tagline="Family Portal" size="lg" className="mb-12" />
         <nav className="flex-1 space-y-2">
           <button className="w-full flex items-center justify-between p-4 rounded-2xl bg-slate-900 text-white shadow-sm font-bold text-sm">
             <div className="flex items-center gap-3"><Activity size={20}/> Monitoring</div>

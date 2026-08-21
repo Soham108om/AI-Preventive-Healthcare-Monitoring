@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { MessageSquare, X, Send, Activity, Mic, Square, Volume2 } from "lucide-react";
+import MedAILogo from "./MedAILogo";
 
 // ============================================================
 // MedAI Voice Chatbot — Standalone Reusable Widget
@@ -149,12 +150,7 @@ const Chatbot = () => {
         <div className="w-[22rem] md:w-[32rem] bg-white rounded-[32px] shadow-2xl border border-slate-100 flex flex-col overflow-hidden animate-in slide-in-from-bottom-5">
           {/* Header */}
           <div className="bg-slate-900 p-5 text-white flex justify-between items-center">
-            <div className="flex items-center gap-3">
-              <div className="bg-blue-600 p-1.5 rounded-lg shadow-lg">
-                <Activity size={16} />
-              </div>
-              <span className="text-xl tracking-tight font-semibold">MedAI Assistant</span>
-            </div>
+            <MedAILogo variant="light" tagline="Assistant" size="sm" />
             <select
               value={language}
               onChange={(e) => setLanguage(e.target.value)}

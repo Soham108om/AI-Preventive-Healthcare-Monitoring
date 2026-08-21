@@ -18,6 +18,7 @@ import {
 // Import Tabs
 import LiveTriageTab from "../components/tabs/LiveTriageTab";
 import HistoryTab from "../components/tabs/HistoryTab";
+import MedAILogo from "../components/MedAILogo";
 import PharmacyTab from "../components/tabs/PharmacyTab";
 
 // ── Sidebar Nav Button Component ─────────────────────────────
@@ -346,15 +347,7 @@ const PatientDashboard = () => {
       {/* SIDEBAR */}
       <aside className="hidden lg:flex flex-col w-72 bg-white/90 backdrop-blur-sm border-r border-[#DFEBE8] p-7 fixed h-full shadow-sm z-30 justify-between">
         <div className="space-y-7">
-          <div className="flex items-center gap-3 pt-1">
-            <div className="bg-[#007F73] p-2.5 rounded-2xl shadow-lg shadow-[#007F73]/20 text-white">
-              <Activity size={22} strokeWidth={2.5} />
-            </div>
-            <div>
-              <span className="font-outfit font-extrabold text-2xl text-[#173B3A] tracking-tight block leading-none">MedAI</span>
-              <span className="text-[10px] font-bold uppercase tracking-widest text-[#94A5A3] mt-1 block">Humanized Precision</span>
-            </div>
-          </div>
+          <MedAILogo tagline="Humanized Precision" size="lg" className="pt-1" />
 
           <nav className="space-y-1.5 pt-3">
             <SidebarNavBtn icon={LayoutDashboard} label="Dashboard" tab="live" activeTab={activeTab} onClick={() => setActiveTab("live")} />

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import supabase from "../services/supabase";
 import { useNavigate, Link } from "react-router-dom";
+import MedAILogo from "../components/MedAILogo";
 import { 
   ArrowRight, Loader2, ShieldCheck, ChevronDown, Eye, EyeOff,
   CheckCircle2, Globe, Lock
@@ -214,14 +215,7 @@ export default function Signup() {
           
           {/* Top Logo */}
           <div className="z-10">
-            <Link to="/" className="inline-flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-[#10B981] flex items-center justify-center shadow-xs">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 5v14M5 12h14" />
-                </svg>
-              </div>
-              <span className="text-2xl font-bold text-slate-900 font-outfit tracking-tight">MedAI</span>
-            </Link>
+            <MedAILogo to="/" size="lg" />
           </div>
 
           {/* Main Headline & Checklist */}
