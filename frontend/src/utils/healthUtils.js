@@ -17,6 +17,7 @@ export const REAL_PUNE_HOSPITALS = [
   { id: 8,  name: "Aditya Birla Memorial",     type: "Cardiac ICU",  lat: 18.6258,   lng: 73.7749,   phone: "020 3071 7777" },
   { id: 9,  name: "Manipal Hospital",          type: "General ER",   lat: 18.541173, lng: 73.935474, phone: "020 6740 0000" },
   { id: 10, name: "Jehangir Hospital",         type: "General ER",   lat: 18.530334, lng: 73.876789, phone: "020 6688 8888" },
+  { id: 11, name: "Lifeline Hospital", type:"General ER", lat: 18.582507, lng: 73.989408, phone: "020 6688 8888"}
 ];
 
 // ── 2. HAVERSINE DISTANCE ────────────────────────────────────

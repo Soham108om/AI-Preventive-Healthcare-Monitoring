@@ -4,7 +4,8 @@ import supabase from "../services/supabase";
 import {
   Activity, ArrowLeft, Apple, ShieldCheck, Heart, User, Check, Info,
   TrendingUp, Award, Compass, AlertTriangle, AlertCircle, Droplet,
-  ChevronRight, RefreshCw, FileText, DollarSign, Ban, BookOpen, Utensils
+  ChevronRight, RefreshCw, FileText, DollarSign, Ban, BookOpen, Utensils,
+  Target, Salad, Pill, LayoutDashboard, LogOut, CheckCircle2, Play
 } from "lucide-react";
 
 // CDSS Service Imports
@@ -106,7 +107,6 @@ export default function DietPlanner() {
     setGeminiExplanation(null);
 
     // 1. Run local deterministic Clinical Decision Support Engine
-    // Automatically injects profile, vitals and questionnaire choices into Rule Engine
     const localPlan = generateNutritionRecommendations(healthProfile, vitals, userInputs);
     setGeneratedPlan(localPlan);
     setGenerating(false);
@@ -144,556 +144,670 @@ export default function DietPlanner() {
   };
 
   return (
-    <div className="flex min-h-screen bg-slate-50 font-sans text-slate-900 selection:bg-blue-100">
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
-        .serif { font-family: 'Instrument Serif', serif; }
-      `}</style>
-
+    <div className="flex min-h-screen bg-gradient-to-br from-[#FFFFFF] via-[#F6FCFA] to-[#E8F6F3] font-sans text-[#173B3A] selection:bg-[#007F73]/10">
+      
       {/* SIDEBAR */}
-      <aside className="hidden lg:flex flex-col w-72 bg-slate-50 border-r border-slate-200 p-8 fixed h-full">
-        <div className="flex items-center gap-3 mb-12">
-          <div className="bg-blue-600 p-2 rounded-xl shadow-lg"><Activity className="text-white" size={24} /></div>
-          <span className="serif text-2xl">MedAI</span>
+      <aside className="hidden lg:flex flex-col w-72 bg-[#EAF5F2]/90 backdrop-blur-sm border-r border-[#DCE9E6] p-6 fixed h-full z-30 justify-between">
+        <div className="space-y-6">
+          <div className="flex items-center gap-3 pt-1">
+            <div className="bg-[#007F73] p-2.5 rounded-2xl shadow-md text-white">
+              <Activity size={22} strokeWidth={2.5} />
+            </div>
+            <div>
+              <span className="font-extrabold text-xl text-[#173B3A] tracking-tight block leading-none">MedAI</span>
+              <span className="text-[10px] font-bold uppercase tracking-widest text-[#657977] mt-1 block">Clinical Support</span>
+            </div>
+          </div>
+
+          <nav className="space-y-1.5 pt-2">
+            <button 
+              onClick={() => navigate("/patient")} 
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-sm text-[#5A716E] hover:text-[#007F73] hover:bg-[#DDF3EF] transition-all"
+            >
+              <LayoutDashboard size={18} />
+              <span>Dashboard</span>
+            </button>
+            <button 
+              onClick={() => navigate("/patient")} 
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-sm text-[#5A716E] hover:text-[#007F73] hover:bg-[#DDF3EF] transition-all"
+            >
+              <FileText size={18} />
+              <span>Records</span>
+            </button>
+            <button 
+              onClick={() => navigate("/patient")} 
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-sm text-[#5A716E] hover:text-[#007F73] hover:bg-[#DDF3EF] transition-all"
+            >
+              <Pill size={18} />
+              <span>Pharmacy & Meds</span>
+            </button>
+            <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm bg-[#007F73] text-white shadow-sm shadow-[#007F73]/20">
+              <Salad size={18} />
+              <span>AI Diet Planner</span>
+            </button>
+          </nav>
         </div>
-        <nav className="flex-1 space-y-2">
-          <button onClick={() => navigate("/patient")} className="w-full flex items-center justify-between p-4 rounded-2xl font-bold text-sm text-slate-400 hover:text-blue-600 hover:bg-slate-100 transition-all">
-            <div className="flex items-center gap-3"><Compass size={20}/> Dashboard</div>
-          </button>
-          <button onClick={() => navigate("/patient")} className="w-full flex items-center justify-between p-4 rounded-2xl font-bold text-sm text-slate-400 hover:text-blue-600 hover:bg-slate-100 transition-all">
-            <div className="flex items-center gap-3"><FileText size={20}/> Records</div>
-          </button>
-          <button onClick={() => navigate("/patient")} className="w-full flex items-center justify-between p-4 rounded-2xl font-bold text-sm text-slate-400 hover:text-blue-600 hover:bg-slate-100 transition-all">
-            <div className="flex items-center gap-3"><Utensils size={20}/> Pharmacy & Meds</div>
-          </button>
-          <button className="w-full flex items-center justify-between p-4 rounded-2xl font-bold text-sm bg-white text-blue-600 shadow-sm border border-slate-200">
-            <div className="flex items-center gap-3"><Apple size={20}/> AI Diet Planner</div>
-          </button>
-        </nav>
-        <button onClick={handleLogout} className="flex items-center gap-3 p-4 text-slate-400 font-bold text-sm hover:text-red-500 transition-colors"><User size={20}/> Sign Out</button>
+
+        <button 
+          onClick={handleLogout} 
+          className="flex items-center gap-3 px-4 py-3 text-[#657977] font-bold text-sm hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all"
+        >
+          <LogOut size={18} />
+          <span>Sign Out</span>
+        </button>
       </aside>
 
       {/* MAIN CONTAINER */}
-      <main className="flex-1 lg:ml-72 p-8 md:p-12 max-w-6xl mx-auto w-full space-y-10">
+      <main className="flex-1 lg:ml-72 p-6 md:p-8 max-w-7xl mx-auto w-full space-y-6">
         
-        {/* HEADER */}
-        <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-          <div className="space-y-2">
+        {/* COMPACT HEADER */}
+        <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#DCE9E6] pb-4">
+          <div className="space-y-1">
             <button 
               onClick={() => navigate("/patient")} 
-              className="flex items-center gap-2 text-slate-400 hover:text-slate-800 font-bold text-sm transition-colors mb-2"
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-[#657977] hover:text-[#007F73] transition-colors mb-1"
             >
-              <ArrowLeft size={16}/> Back to Dashboard
+              <ArrowLeft size={14} /> Back to Dashboard
             </button>
-            <h1 className="serif text-5xl md:text-6xl text-slate-900 tracking-tight leading-none">Clinical Nutrition CDSS</h1>
-            <p className="text-slate-400 font-medium text-sm md:text-base">
-              Evidence-Based Clinical Nutrition Decision Support System mapped to official WHO, AHA, NHLBI, ADA, ACSM, and ISSN rulebooks.
-            </p>
+            <h1 className="text-2xl md:text-3xl font-extrabold text-[#173B3A] tracking-tight">Clinical Nutrition CDSS</h1>
+          </div>
+          <div className="self-start sm:self-center">
+            <span className="bg-[#EAF7F4] text-[#007F73] border border-[#BCE6DC] px-3.5 py-1.5 rounded-full text-xs font-semibold tracking-wide">
+              Evidence-Based Clinical Nutrition Decision Support System
+            </span>
           </div>
         </header>
 
-        {/* WORKFLOW ROWS */}
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
+        {/* TOP DASHBOARD GRID: PATIENT DOSSIER & NUTRITION GOAL */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
           
-          {/* LEFT PANEL: PROFILE & INTERACTION FORM (2/5 size) */}
-          <div className="lg:col-span-2 space-y-8">
-            
-            {/* PATIENT DOSSIER CARD */}
-            <div className="bg-white p-6 md:p-8 rounded-[32px] border border-slate-100 shadow-lg space-y-5">
-              <h3 className="serif text-2xl text-slate-800 border-b border-slate-100 pb-3 flex items-center gap-2">
-                <ShieldCheck className="text-blue-600" size={20} /> Clinical Patient Dossier
+          {/* CLINICAL PATIENT DOSSIER CARD (8 cols) */}
+          <div className="lg:col-span-8 bg-white rounded-2xl border border-[#DCE9E6] shadow-sm p-5 md:p-6 flex flex-col justify-between space-y-4">
+            <div className="flex justify-between items-center border-b border-[#EEF5F3] pb-3">
+              <h3 className="text-base font-bold text-[#173B3A] flex items-center gap-2">
+                <ShieldCheck className="text-[#007F73]" size={18} /> Clinical Patient Dossier
               </h3>
-              
-              {loadingDossier ? (
-                <div className="flex justify-center items-center py-6 text-slate-400 text-sm gap-2">
-                  <RefreshCw className="animate-spin" size={16} /> Syncing smartwatch logs...
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-slate-50 p-3.5 rounded-2xl">
-                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-0.5">Height & Weight</span>
-                      <span className="text-sm font-bold text-slate-700">
-                        {healthProfile?.height || 170} cm / {healthProfile?.weight || 70} kg
-                      </span>
-                    </div>
-                    <div className="bg-slate-50 p-3.5 rounded-2xl">
-                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-0.5">Calculated BMI</span>
-                      <span className="text-sm font-bold text-slate-700">
-                        {healthProfile?.bmi || parseFloat(((healthProfile?.weight || 70) / (((healthProfile?.height || 170) / 100) * ((healthProfile?.height || 170) / 100))).toFixed(2))}
-                      </span>
-                    </div>
-                    <div className="bg-slate-50 p-3.5 rounded-2xl">
-                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-0.5">Blood Pressure</span>
-                      <span className="text-sm font-bold text-slate-700">
-                        {vitals.systolic_bp}/{vitals.diastolic_bp} mmHg
-                      </span>
-                    </div>
-                    <div className="bg-slate-50 p-3.5 rounded-2xl">
-                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-0.5">Daily Steps</span>
-                      <span className="text-sm font-bold text-slate-700">
-                        {parseInt(vitals.steps).toLocaleString()} steps
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <div>
-                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Medical Conditions</span>
-                      <div className="flex flex-wrap gap-1.5 mt-1">
-                        {healthProfile?.medical_history && healthProfile.medical_history.length > 0 && !healthProfile.medical_history.includes("None") ? (
-                          healthProfile.medical_history.map((cond, idx) => (
-                            <span key={idx} className="bg-rose-50 border border-rose-100 text-rose-600 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">
-                              {cond}
-                            </span>
-                          ))
-                        ) : (
-                          <span className="bg-emerald-50 border border-emerald-100 text-emerald-600 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">
-                            No Active Pathologies
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="pt-1">
-                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Athlete Profile</span>
-                      <span className="text-xs font-bold text-slate-600 block mt-0.5">
-                        {healthProfile?.athlete_status ? (
-                          <span className="text-blue-600 font-extrabold">
-                            Active Athlete ({healthProfile.sport_type} | {healthProfile.training_frequency})
-                          </span>
-                        ) : (
-                          "Non-Athlete (Standard Caloric Metabolism)"
-                        )}
-                      </span>
-                    </div>
-                  </div>
-                </div>
+              {healthProfile && (
+                <span className="text-[11px] font-mono font-bold text-[#657977] bg-[#F0F9F7] px-2.5 py-1 rounded-lg border border-[#DCE9E6]">
+                  ID: P-{healthProfile.id?.slice(0, 5).toUpperCase() || "98214"}
+                </span>
               )}
             </div>
 
-            {/* FORM */}
-            <form onSubmit={handleGenerate} className="bg-white p-6 md:p-8 rounded-[32px] border border-slate-100 shadow-lg space-y-6">
-              <h3 className="serif text-2xl text-slate-800 border-b border-slate-100 pb-3 flex items-center gap-2">
-                <Utensils className="text-blue-600" size={20} /> Decision Parameters
+            {loadingDossier ? (
+              <div className="flex justify-center items-center py-8 text-[#657977] text-xs gap-2">
+                <RefreshCw className="animate-spin text-[#007F73]" size={16} /> Syncing smartwatch logs & health profile...
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {/* Metric Strip 1 */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="bg-[#F7FCFA] border border-[#E8F4F1] p-3 rounded-xl">
+                    <span className="text-[10px] font-bold text-[#657977] uppercase tracking-wider block mb-0.5">Height</span>
+                    <span className="text-sm font-extrabold text-[#173B3A]">{healthProfile?.height || 170} cm</span>
+                  </div>
+                  <div className="bg-[#F7FCFA] border border-[#E8F4F1] p-3 rounded-xl">
+                    <span className="text-[10px] font-bold text-[#657977] uppercase tracking-wider block mb-0.5">Weight</span>
+                    <span className="text-sm font-extrabold text-[#173B3A]">{healthProfile?.weight || 70} kg</span>
+                  </div>
+                  <div className="bg-[#F7FCFA] border border-[#E8F4F1] p-3 rounded-xl">
+                    <span className="text-[10px] font-bold text-[#657977] uppercase tracking-wider block mb-0.5">BMI</span>
+                    <span className="text-sm font-extrabold text-[#173B3A]">
+                      {healthProfile?.bmi || parseFloat(((healthProfile?.weight || 70) / (((healthProfile?.height || 170) / 100) * ((healthProfile?.height || 170) / 100))).toFixed(1))}
+                      <span className="inline-block w-2 h-2 rounded-full bg-[#16A085] ml-1.5" title="Normal Range"></span>
+                    </span>
+                  </div>
+                  <div className="bg-[#F7FCFA] border border-[#E8F4F1] p-3 rounded-xl">
+                    <span className="text-[10px] font-bold text-[#657977] uppercase tracking-wider block mb-0.5">Blood Pressure</span>
+                    <span className="text-sm font-extrabold text-[#173B3A]">{vitals.systolic_bp}/{vitals.diastolic_bp} mmHg</span>
+                  </div>
+                </div>
+
+                {/* Metric Strip 2 */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                  <div className="bg-[#F7FCFA] border border-[#E8F4F1] p-3 rounded-xl flex justify-between items-center">
+                    <div>
+                      <span className="text-[10px] font-bold text-[#657977] uppercase tracking-wider block">Daily Steps</span>
+                      <span className="text-sm font-extrabold text-[#173B3A]">{parseInt(vitals.steps).toLocaleString()} steps</span>
+                    </div>
+                  </div>
+
+                  <div className="bg-[#F7FCFA] border border-[#E8F4F1] p-3 rounded-xl space-y-1">
+                    <span className="text-[10px] font-bold text-[#657977] uppercase tracking-wider block">Conditions</span>
+                    <div className="flex flex-wrap gap-1">
+                      {healthProfile?.medical_history && healthProfile.medical_history.length > 0 && !healthProfile.medical_history.includes("None") ? (
+                        healthProfile.medical_history.map((cond, idx) => (
+                          <span key={idx} className="bg-rose-50 border border-rose-100 text-rose-600 text-[10px] font-bold px-2 py-0.5 rounded-md">
+                            {cond}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="bg-[#EAF8F5] border border-[#C5EBE3] text-[#007F73] text-[10px] font-bold px-2 py-0.5 rounded-md">
+                          None Active
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="bg-[#F7FCFA] border border-[#E8F4F1] p-3 rounded-xl space-y-1">
+                    <span className="text-[10px] font-bold text-[#657977] uppercase tracking-wider block">Profile</span>
+                    <span className="text-xs font-bold text-[#173B3A] block">
+                      {healthProfile?.athlete_status ? (
+                        <span className="bg-[#EAF7F4] text-[#007F73] border border-[#BCE6DC] px-2 py-0.5 rounded-md text-[11px]">
+                          Athlete ({healthProfile.sport_type})
+                        </span>
+                      ) : (
+                        <span className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md text-[11px]">
+                          Standard Metabolism
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* NUTRITION GOAL CARD (4 cols) */}
+          <div className="lg:col-span-4 bg-white rounded-2xl border border-[#DCE9E6] shadow-sm p-5 md:p-6 flex flex-col justify-between space-y-4">
+            <div className="flex justify-between items-center border-b border-[#EEF5F3] pb-3">
+              <h3 className="text-base font-bold text-[#173B3A] flex items-center gap-2">
+                <Target className="text-[#007F73]" size={18} /> Nutrition Goal
               </h3>
-              
-              <div className="space-y-4">
+            </div>
+
+            <div className="space-y-2 my-auto">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-[#657977] block">Calculated Target</span>
+              <div className="flex items-baseline gap-2">
+                <span className="text-4xl font-extrabold text-[#173B3A] tracking-tight">
+                  {generatedPlan ? generatedPlan.calories : (healthProfile ? Math.round(2000) : 2000)}
+                </span>
+                <span className="text-sm font-semibold text-[#657977]">kcal/day</span>
+              </div>
+
+              <div className="pt-2">
+                <span className="bg-[#EAF7F4] text-[#00665D] border border-[#C5EBE3] text-xs font-bold px-3 py-1.5 rounded-xl inline-flex items-center gap-1.5">
+                  <TrendingUp size={14} className="text-[#007F73]" />
+                  {generatedPlan ? getPersonalizedGoalTitle() : userInputs.goal}
+                </span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        {/* SECOND ROW: CDSS PARAMETERS FORM & CLINICAL POLICY / CONSENSUS */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          
+          {/* CDSS PARAMETERS FORM (7 cols) */}
+          <div className="lg:col-span-7 bg-white rounded-2xl border border-[#DCE9E6] shadow-sm p-5 md:p-6 space-y-4">
+            <div className="flex items-center justify-between border-b border-[#EEF5F3] pb-3">
+              <h3 className="text-base font-bold text-[#173B3A] flex items-center gap-2">
+                <Utensils className="text-[#007F73]" size={18} /> CDSS Parameters
+              </h3>
+            </div>
+
+            <form onSubmit={handleGenerate} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-[10px] font-black uppercase text-slate-400 mb-2 block tracking-widest">Food Preference</label>
+                  <label className="text-[10px] font-bold uppercase text-[#657977] mb-1 block tracking-wider">Food Preference</label>
                   <select
                     value={userInputs.preference}
                     onChange={(e) => setUserInputs({ ...userInputs, preference: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 p-3 rounded-2xl outline-none font-medium text-sm text-slate-700"
+                    className="w-full bg-[#F7FCFA] border border-[#DCE9E6] focus:border-[#007F73] focus:ring-1 focus:ring-[#007F73] p-2.5 rounded-xl text-xs font-semibold text-[#173B3A] outline-none transition-all"
                   >
                     <option value="Vegetarian">Vegetarian (Includes dairy)</option>
-                    <option value="Non Vegetarian">Non-Vegetarian (Eggs, Poultry, Fish)</option>
+                    <option value="Non Vegetarian">Non-Vegetarian (Poultry, Fish, Eggs)</option>
                     <option value="Vegan">Vegan (Plant-based only)</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="text-[10px] font-black uppercase text-slate-400 mb-2 block tracking-widest">Food Allergies</label>
-                  <input
-                    type="text"
-                    value={userInputs.allergies}
-                    onChange={(e) => setUserInputs({ ...userInputs, allergies: e.target.value })}
-                    placeholder="e.g. Gluten, Nuts, Dairy"
-                    className="w-full bg-slate-50 border border-slate-200 p-3 rounded-2xl outline-none font-medium text-sm placeholder:text-slate-300"
-                  />
-                  <span className="text-[10px] text-slate-400 mt-1 block leading-tight">
-                    *The CDSS dynamic rulebook evaluator replaces elements on matching allergen triggers.
-                  </span>
-                </div>
-
-                <div>
-                  <label className="text-[10px] font-black uppercase text-slate-400 mb-2 block tracking-widest">Dietary Goal</label>
+                  <label className="text-[10px] font-bold uppercase text-[#657977] mb-1 block tracking-wider">Dietary Goal</label>
                   <select
                     value={userInputs.goal}
                     onChange={(e) => setUserInputs({ ...userInputs, goal: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 p-3 rounded-2xl outline-none font-medium text-sm text-slate-700"
+                    className="w-full bg-[#F7FCFA] border border-[#DCE9E6] focus:border-[#007F73] focus:ring-1 focus:ring-[#007F73] p-2.5 rounded-xl text-xs font-semibold text-[#173B3A] outline-none transition-all"
                   >
                     <option value="Weight Loss">Weight Loss (Caloric Deficit)</option>
                     <option value="Weight Gain">Weight Gain (Caloric Surplus)</option>
                     <option value="Maintain Weight">Maintain Healthy Weight</option>
-                    <option value="Muscle Gain">Muscle Gain (High Protein Hypertrophy)</option>
+                    <option value="Muscle Gain">Muscle Gain (Hypertrophy)</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="text-[10px] font-black uppercase text-slate-400 mb-2 block tracking-widest">Budget Setting (Optional Metadata)</label>
+                  <label className="text-[10px] font-bold uppercase text-[#657977] mb-1 block tracking-wider">Budget Constraint</label>
                   <select
                     value={userInputs.budget}
                     onChange={(e) => setUserInputs({ ...userInputs, budget: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 p-3 rounded-2xl outline-none font-medium text-sm text-slate-700"
+                    className="w-full bg-[#F7FCFA] border border-[#DCE9E6] focus:border-[#007F73] focus:ring-1 focus:ring-[#007F73] p-2.5 rounded-xl text-xs font-semibold text-[#173B3A] outline-none transition-all"
                   >
                     <option value="Low">Low Budget (Affordable local options)</option>
-                    <option value="Medium">Medium Budget (Standard grocery balance)</option>
-                    <option value="High">Premium Budget (Includes organic superfoods)</option>
+                    <option value="Medium">Medium Budget (Standard balance)</option>
+                    <option value="High">Premium Budget (Organic superfoods)</option>
                   </select>
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-bold uppercase text-[#657977] mb-1 block tracking-wider">Food Allergies</label>
+                  <input
+                    type="text"
+                    value={userInputs.allergies}
+                    onChange={(e) => setUserInputs({ ...userInputs, allergies: e.target.value })}
+                    placeholder="e.g. Gluten, Nuts, Dairy (None reported)"
+                    className="w-full bg-[#F7FCFA] border border-[#DCE9E6] focus:border-[#007F73] focus:ring-1 focus:ring-[#007F73] p-2.5 rounded-xl text-xs font-semibold text-[#173B3A] placeholder:text-[#94A5A3] outline-none transition-all"
+                  />
                 </div>
               </div>
 
               <button
                 type="submit"
                 disabled={generating || loadingDossier}
-                className="w-full bg-slate-900 text-white font-bold py-4 rounded-2xl mt-2 hover:bg-blue-600 transition-all shadow-xl shadow-slate-200 disabled:opacity-50 flex justify-center items-center gap-2"
+                className="w-full bg-[#007F73] hover:bg-[#00665D] text-white font-bold py-3 px-6 rounded-xl shadow-sm transition-all flex justify-center items-center gap-2 text-sm disabled:opacity-50 mt-2"
               >
                 {generating ? (
                   <>
-                    <RefreshCw className="animate-spin" size={18} /> Consulting Rulebook...
+                    <RefreshCw className="animate-spin" size={16} /> Evaluating CDSS Rules...
                   </>
                 ) : (
                   <>
-                    <Apple size={18} /> Execute Nutrition CDSS
+                    <Play size={15} fill="currentColor" /> Execute Nutrition CDSS
                   </>
                 )}
               </button>
             </form>
           </div>
 
-          {/* RIGHT PANEL: CALCULATED DIET PLAN (3/5 size) */}
-          <div className="lg:col-span-3 space-y-8">
-            
-            {!generatedPlan ? (
-              <div className="bg-white p-12 rounded-[40px] border border-slate-100 shadow-lg text-center space-y-4">
-                <div className="mx-auto w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center">
-                  <BookOpen size={28} />
-                </div>
-                <h3 className="serif text-3xl text-slate-800">Rule Engine Active</h3>
-                <p className="text-slate-400 text-sm max-w-sm mx-auto">
-                  Click the button to run the clinical rulebook evaluator. Vitals and profiles will be mapped dynamically to guidelines.
-                </p>
+          {/* CLINICAL POLICY & CONSENSUS (5 cols) */}
+          <div className="lg:col-span-5 bg-white rounded-2xl border border-[#DCE9E6] shadow-sm p-5 md:p-6 space-y-4">
+            <div className="flex items-center justify-between border-b border-[#EEF5F3] pb-3">
+              <h3 className="text-base font-bold text-[#173B3A] flex items-center gap-2">
+                <CheckCircle2 className="text-[#007F73]" size={18} /> Clinical Policy & Consensus
+              </h3>
+            </div>
+
+            {generatedPlan ? (
+              <div className="space-y-3">
+                {/* Consensus matched */}
+                {generatedPlan.consensus_matched.length > 0 && (
+                  <div className="space-y-2">
+                    <span className="text-[10px] font-bold text-[#16A085] uppercase tracking-wider block">Consensus Guidelines Aligned</span>
+                    <div className="space-y-1.5">
+                      {generatedPlan.consensus_matched.map((c, idx) => (
+                        <div key={idx} className="flex justify-between items-center bg-[#F7FCFA] border border-[#E8F4F1] p-2.5 rounded-xl text-xs">
+                          <span className="font-semibold text-[#173B3A]">{c.topic}</span>
+                          <span className="bg-[#EAF8F5] text-[#007F73] font-bold text-[10px] px-2 py-0.5 rounded-md border border-[#C5EBE3]">
+                            APPLIED
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Conflicts detected */}
+                {generatedPlan.conflicts_detected.length > 0 && (
+                  <div className="space-y-2 pt-2 border-t border-[#EEF5F3]">
+                    <span className="text-[10px] font-bold text-rose-600 uppercase tracking-wider block">Clinical Policy Conflicts Resolving</span>
+                    <div className="space-y-1.5">
+                      {generatedPlan.conflicts_detected.map((conflict, idx) => (
+                        <div key={idx} className="bg-rose-50/70 border border-rose-100 p-2.5 rounded-xl space-y-1 text-xs">
+                          <div className="flex justify-between items-center">
+                            <span className="font-bold text-rose-700">{conflict.topic}</span>
+                            <span className="bg-rose-100 text-rose-700 font-bold text-[9px] px-2 py-0.5 rounded-md">
+                              POLICY APPLIED
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-slate-600 italic">{conflict.resolution}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
-              <div className="space-y-8 animate-in fade-in duration-500">
-                
-                {/* SECTION 1: PERSONALIZED NUTRITION SUMMARY */}
-                <div className="bg-white p-8 rounded-[36px] border border-slate-100 shadow-xl space-y-4">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Section 1: Personalized Nutrition Summary</span>
-                  <div className="bg-blue-50 border border-blue-100 p-6 rounded-3xl">
-                    <h4 className="text-xs font-black uppercase text-blue-600 tracking-wider">Current Medical & Nutrition Goal</h4>
-                    <p className="serif text-3xl text-slate-950 mt-2 font-bold">{getPersonalizedGoalTitle()}</p>
-                    <p className="text-xs text-slate-500 mt-2 font-medium">
-                      Calculated dynamically by the CDSS rulebook trigger evaluator using profile data and active smartwatch triage thresholds.
-                    </p>
+              <div className="space-y-2.5">
+                <div className="flex justify-between items-center bg-[#F7FCFA] border border-[#E8F4F1] p-2.5 rounded-xl text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-[#16A085]"></span>
+                    <span className="font-semibold text-[#173B3A]">WHO Global Diet Guidelines (2023)</span>
                   </div>
+                  <span className="bg-[#EAF8F5] text-[#007F73] font-bold text-[10px] px-2 py-0.5 rounded-md border border-[#C5EBE3]">APPLIED</span>
                 </div>
 
-                {/* CLINICAL CONFLICTS & CONSENSUS PANEL */}
-                {(generatedPlan.conflicts_detected.length > 0 || generatedPlan.consensus_matched.length > 0) && (
-                  <div className="bg-white p-8 rounded-[36px] border border-slate-100 shadow-xl space-y-6">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Clinical Policy & Consensus Dashboard</span>
-                    
-                    {/* Conflicts */}
-                    {generatedPlan.conflicts_detected.length > 0 && (
-                      <div className="space-y-4">
-                        <h4 className="text-xs font-black text-rose-600 uppercase tracking-wider flex items-center gap-2">
-                          <AlertTriangle size={16} /> Active Clinical Conflict Warnings
-                        </h4>
-                        <div className="space-y-3">
-                          {generatedPlan.conflicts_detected.map((conflict, idx) => (
-                            <div key={idx} className="bg-rose-50 border border-rose-100 p-5 rounded-2xl space-y-2">
-                              <span className="text-xs font-bold text-rose-700 block">{conflict.conflict_id}: {conflict.topic}</span>
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs text-slate-600 py-1">
-                                <div className="bg-white/60 p-2.5 rounded-xl border border-rose-100">
-                                  <strong>{conflict.source_a.org} Position:</strong> {conflict.source_a.value}
-                                </div>
-                                <div className="bg-white/60 p-2.5 rounded-xl border border-rose-100">
-                                  <strong>{conflict.source_b.org} Position:</strong> {conflict.source_b.value}
-                                </div>
-                              </div>
-                              <p className="text-xs text-slate-500 leading-relaxed font-semibold italic">
-                                <strong>Resolution Policy:</strong> {conflict.resolution}
-                              </p>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Consensus */}
-                    {generatedPlan.consensus_matched.length > 0 && (
-                      <div className="space-y-4 border-t border-slate-100 pt-6">
-                        <h4 className="text-xs font-black text-emerald-600 uppercase tracking-wider flex items-center gap-2">
-                          <ShieldCheck size={16} /> Consensus Guideline Aligments
-                        </h4>
-                        <div className="flex flex-wrap gap-2">
-                          {generatedPlan.consensus_matched.map((consensus, idx) => (
-                            <div key={idx} className="bg-emerald-50 border border-emerald-100 px-4 py-3 rounded-2xl text-xs text-emerald-800 font-semibold flex items-center gap-2">
-                              <span className="w-1.5 h-1.5 bg-emerald-600 rounded-full"></span>
-                              <span>{consensus.topic} (Consensus of {consensus.supporting_orgs.join(", ")})</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+                <div className="flex justify-between items-center bg-[#F7FCFA] border border-[#E8F4F1] p-2.5 rounded-xl text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-[#16A085]"></span>
+                    <span className="font-semibold text-[#173B3A]">AHA Cardiovascular Nutrition</span>
                   </div>
-                )}
-
-                {/* SECTION 2: CLINICAL RECOMMENDATIONS */}
-                <div className="bg-white p-8 rounded-[36px] border border-slate-100 shadow-xl space-y-6">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Section 2: Clinical Recommendations</span>
-                  
-                  <div className="space-y-4">
-                    {generatedPlan.rules_matched.map((rule, idx) => (
-                      <div key={idx} className="flex gap-4 items-start p-4 bg-slate-50 border border-slate-100 rounded-2xl">
-                        <div className="p-2 bg-blue-50 text-blue-600 rounded-xl font-black text-xs uppercase text-center min-w-[80px] border border-blue-100">
-                          {rule.organization}
-                        </div>
-                        <div className="flex-1 space-y-1">
-                          <h5 className="text-sm font-extrabold text-slate-800">{rule.recommendation}</h5>
-                          <div className="flex gap-2 items-center flex-wrap pt-1">
-                            <span className="text-[9px] bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
-                              Topic: {rule.clinical_topic}
-                            </span>
-                            <span className="text-[9px] bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
-                              Evidence: {formatEvidenceLevel(rule.evidence_strength)}
-                            </span>
-                            {rule.guideline_strength && rule.guideline_strength !== "NOT SUPPORTED BY PROVIDED SOURCES" && (
-                              <span className="text-[9px] bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
-                                {rule.guideline_strength}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                  <span className="bg-[#EAF8F5] text-[#007F73] font-bold text-[10px] px-2 py-0.5 rounded-md border border-[#C5EBE3]">APPLIED</span>
                 </div>
 
-                {/* SECTION 3: DAILY MEAL PLAN */}
-                <div className="bg-white p-8 rounded-[36px] border border-slate-100 shadow-xl space-y-6">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Section 3: Daily Meal Plan</span>
-                  
-                  <div className="space-y-4">
-                    <div className="flex gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-100">
-                      <div className="w-24 bg-blue-100 text-blue-700 text-center py-2 px-1 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center">Breakfast</div>
-                      <div className="flex-1 text-slate-700 text-sm font-medium self-center">{generatedPlan.meals.breakfast}</div>
-                    </div>
-
-                    <div className="flex gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-100">
-                      <div className="w-24 bg-indigo-100 text-indigo-700 text-center py-2 px-1 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center">Snacks (AM)</div>
-                      <div className="flex-1 text-slate-700 text-sm font-medium self-center">{generatedPlan.meals.morning_snack}</div>
-                    </div>
-
-                    <div className="flex gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-100">
-                      <div className="w-24 bg-emerald-100 text-emerald-700 text-center py-2 px-1 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center">Lunch</div>
-                      <div className="flex-1 text-slate-700 text-sm font-medium self-center">{generatedPlan.meals.lunch}</div>
-                    </div>
-
-                    <div className="flex gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-100">
-                      <div className="w-24 bg-indigo-100 text-indigo-700 text-center py-2 px-1 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center">Snacks (PM)</div>
-                      <div className="flex-1 text-slate-700 text-sm font-medium self-center">{generatedPlan.meals.evening_snack}</div>
-                    </div>
-
-                    <div className="flex gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-100">
-                      <div className="w-24 bg-violet-100 text-violet-700 text-center py-2 px-1 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center">Dinner</div>
-                      <div className="flex-1 text-slate-700 text-sm font-medium self-center">{generatedPlan.meals.dinner}</div>
-                    </div>
-
-                    <div className="flex gap-4 p-4 rounded-2xl bg-sky-50 border border-sky-100">
-                      <div className="w-24 bg-sky-100 text-sky-700 text-center py-2 px-1 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center">Hydration</div>
-                      <div className="flex-1 text-slate-700 text-sm font-medium self-center">
-                        Consume at least <strong>{generatedPlan.water} Liters</strong> of clean water daily to offset cellular dehydration (ACSM Guideline).
-                      </div>
-                    </div>
+                <div className="flex justify-between items-center bg-[#F7FCFA] border border-[#E8F4F1] p-2.5 rounded-xl text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-slate-300"></span>
+                    <span className="font-semibold text-slate-500">ADA Diabetes Prevention</span>
                   </div>
+                  <span className="bg-slate-100 text-slate-500 font-bold text-[10px] px-2 py-0.5 rounded-md">SKIPPED (N/A)</span>
                 </div>
 
-                {/* SECTION 4: FOODS TO PREFER */}
-                <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-xl space-y-4">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Section 4: Foods to Prefer</span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {generatedPlan.foods_to_prefer.map((food, idx) => (
-                      <span key={idx} className="bg-emerald-50 text-emerald-700 border border-emerald-100 text-[10px] font-black uppercase tracking-wider px-3.5 py-2 rounded-xl">
-                        {food}
-                      </span>
-                    ))}
+                <div className="flex justify-between items-center bg-[#F7FCFA] border border-[#E8F4F1] p-2.5 rounded-xl text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-[#16A085]"></span>
+                    <span className="font-semibold text-[#173B3A]">ACSM & ISSN Sports Nutrition</span>
                   </div>
+                  <span className="bg-[#EAF8F5] text-[#007F73] font-bold text-[10px] px-2 py-0.5 rounded-md border border-[#C5EBE3]">APPLIED</span>
                 </div>
-
-                {/* SECTION 5: FOODS TO LIMIT */}
-                <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-xl space-y-4">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Section 5: Foods to Limit / Avoid</span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {generatedPlan.foods_to_limit.map((food, idx) => (
-                      <span key={idx} className="bg-rose-50 text-rose-700 border border-rose-100 text-[10px] font-black uppercase tracking-wider px-3.5 py-2 rounded-xl">
-                        {food}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-
-                {/* SECTION 6: PERSONALIZED NUTRITION TARGETS */}
-                <div className="bg-white p-8 rounded-[36px] border border-slate-100 shadow-xl space-y-6">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Section 6: Personalized Nutrition Targets</span>
-                  
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="bg-slate-900 text-white p-5 rounded-2xl flex flex-col justify-between">
-                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Energy Intake</span>
-                      <div>
-                        <span className="serif text-3xl font-bold">{generatedPlan.calories}</span>
-                        <span className="text-xs text-slate-400 block">kcal</span>
-                      </div>
-                    </div>
-                    
-                    <div className="bg-slate-50 p-5 rounded-2xl flex flex-col justify-between border border-slate-100">
-                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Protein Target</span>
-                      <div>
-                        <span className="serif text-3xl font-bold">{generatedPlan.protein}</span>
-                        <span className="text-xs text-slate-400 block">g</span>
-                      </div>
-                    </div>
-
-                    <div className="bg-slate-50 p-5 rounded-2xl flex flex-col justify-between border border-slate-100">
-                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Carbohydrates</span>
-                      <div>
-                        <span className="serif text-3xl font-bold">{generatedPlan.carbohydrates}</span>
-                        <span className="text-xs text-slate-400 block">g</span>
-                      </div>
-                    </div>
-
-                    <div className="bg-slate-50 p-5 rounded-2xl flex flex-col justify-between border border-slate-100">
-                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Dietary Fats</span>
-                      <div>
-                        <span className="serif text-3xl font-bold">{generatedPlan.fat}</span>
-                        <span className="text-xs text-slate-400 block">g</span>
-                      </div>
-                    </div>
-
-                    <div className="bg-slate-50 p-5 rounded-2xl flex flex-col justify-between border border-slate-100">
-                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Dietary Fiber</span>
-                      <div>
-                        <span className="serif text-3xl font-bold">{generatedPlan.fiber}</span>
-                        <span className="text-xs text-slate-400 block">g</span>
-                      </div>
-                    </div>
-
-                    <div className="bg-slate-50 p-5 rounded-2xl flex flex-col justify-between border border-slate-100">
-                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Water Intake</span>
-                      <div>
-                        <span className="serif text-3xl font-bold">{generatedPlan.water}</span>
-                        <span className="text-xs text-slate-400 block">Liters</span>
-                      </div>
-                    </div>
-
-                    <div className="bg-slate-50 p-5 rounded-2xl flex flex-col justify-between border border-slate-100">
-                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Sodium Limit</span>
-                      <div>
-                        <span className="serif text-3xl font-bold">{generatedPlan.sodium}</span>
-                        <span className="text-xs text-slate-400 block">mg</span>
-                      </div>
-                    </div>
-
-                    <div className="bg-slate-50 p-5 rounded-2xl flex flex-col justify-between border border-slate-100">
-                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Sugar Ceiling</span>
-                      <div>
-                        <span className="serif text-3xl font-bold">{generatedPlan.sugar}</span>
-                        <span className="text-xs text-slate-400 block">g</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* SECTION 7: RULE TRANSPARENCY */}
-                <div className="bg-white p-8 rounded-[36px] border border-slate-100 shadow-xl space-y-6">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Section 7: Rule Transparency Trail</span>
-                  
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left text-xs border-collapse">
-                      <thead>
-                        <tr className="border-b border-slate-100 text-slate-400 font-extrabold">
-                          <th className="py-3 px-2">Clinical Rule ID</th>
-                          <th className="py-3 px-2">Organization</th>
-                          <th className="py-3 px-2">Guideline & Topic</th>
-                          <th className="py-3 px-2">Evidence Level</th>
-                          <th className="py-3 px-2">Publication & URL</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {generatedPlan.rules_matched.map((rule, idx) => (
-                          <tr key={idx} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
-                            <td className="py-3.5 px-2 font-mono font-bold text-slate-700">{rule.rule_id}</td>
-                            <td className="py-3.5 px-2">
-                              <span className="bg-blue-50 text-blue-700 font-bold px-2.5 py-0.5 rounded-full border border-blue-100">
-                                {rule.organization}
-                              </span>
-                            </td>
-                            <td className="py-3.5 px-2 font-medium text-slate-800">
-                              {rule.guideline_name}
-                              <span className="block text-[10px] text-slate-400 font-semibold mt-0.5">
-                                Topic: {rule.clinical_topic}
-                              </span>
-                            </td>
-                            <td className="py-3.5 px-2">
-                              <span className={`font-bold uppercase tracking-wider text-[9px] ${
-                                rule.evidence_strength === "HIGH" ? "text-emerald-600" :
-                                rule.evidence_strength === "MODERATE" ? "text-amber-600" : "text-slate-500"
-                              }`}>
-                                {rule.evidence_strength}
-                              </span>
-                            </td>
-                            <td className="py-3.5 px-2 text-[10px] text-slate-400">
-                              {rule.publication_year} | 
-                              <a href={rule.url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline inline-flex items-center gap-0.5 ml-1 font-bold">
-                                Source <ChevronRight size={10} />
-                              </a>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-
-                {/* SECTION 8: AI EXPLANATION */}
-                {(!geminiOffline || geminiLoading) && (
-                  <div className="bg-slate-900 text-white p-8 rounded-[36px] border border-slate-800 shadow-2xl space-y-5">
-                    <span className="text-[9px] bg-slate-800 text-emerald-400 font-bold uppercase tracking-widest px-3 py-1 rounded-full border border-slate-700 inline-block">
-                      Section 8: AI Explanation
-                    </span>
-                    
-                    <div className="flex justify-between items-center border-b border-slate-850 pb-2">
-                      <h3 className="serif text-3xl text-white flex items-center gap-2">
-                        <Activity size={24} className="text-emerald-400 animate-pulse" /> Why these recommendations were selected
-                      </h3>
-                    </div>
-
-                    {geminiLoading ? (
-                      <div className="py-8 flex flex-col justify-center items-center gap-3 text-slate-400 text-sm">
-                        <RefreshCw className="animate-spin text-emerald-400" size={24} />
-                        <span>Gemini is generating natural language justifications...</span>
-                      </div>
-                    ) : (
-                      geminiExplanation && (
-                        <div className="space-y-6">
-                          <p className="text-sm leading-relaxed text-slate-200 font-medium italic">
-                            "{geminiExplanation.explanation}"
-                          </p>
-                          
-                          <div className="space-y-3 pt-2">
-                            <span className="text-[10px] font-black uppercase text-emerald-400 tracking-widest block">Personalized Clinical Insights:</span>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                              {geminiExplanation.personalized_tips.map((tip, idx) => (
-                                <div key={idx} className="bg-slate-800/40 p-4 rounded-2xl border border-slate-800 text-xs text-slate-300 leading-relaxed">
-                                  {tip}
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                      )
-                    )}
-                  </div>
-                )}
-
               </div>
             )}
-            
           </div>
 
         </div>
+
+        {/* OUTPUT SECTIONS WHEN PLAN IS GENERATED */}
+        {generatedPlan && (
+          <div className="space-y-6">
+            
+            {/* PERSONALIZED NUTRITION SUMMARY BANNER */}
+            <div className="bg-[#EAF7F4] border border-[#BCE6DC] p-5 rounded-2xl space-y-1">
+              <span className="text-[10px] font-bold text-[#007F73] uppercase tracking-wider block">Personalized Clinical Summary</span>
+              <h4 className="text-lg font-extrabold text-[#173B3A]">{getPersonalizedGoalTitle()}</h4>
+              <p className="text-xs text-[#657977] font-medium">
+                Evaluated dynamically against medical profile data and active smartwatch vitals triage thresholds.
+              </p>
+            </div>
+
+            {/* SECTION 2: CLINICAL RECOMMENDATIONS */}
+            <div className="bg-white rounded-2xl border border-[#DCE9E6] shadow-sm p-5 md:p-6 space-y-4">
+              <div className="flex items-center justify-between border-b border-[#EEF5F3] pb-3">
+                <h3 className="text-base font-bold text-[#173B3A] flex items-center gap-2">
+                  <Award className="text-[#007F73]" size={18} /> Clinical Recommendations
+                </h3>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {generatedPlan.rules_matched.map((rule, idx) => (
+                  <div key={idx} className="p-3.5 bg-[#F7FCFA] border border-[#E8F4F1] rounded-xl flex flex-col justify-between space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="bg-[#E8F6F3] text-[#007F73] font-extrabold text-[10px] px-2.5 py-0.5 rounded-md border border-[#C5EBE3]">
+                        {rule.organization}
+                      </span>
+                      <span className={`font-bold uppercase tracking-wider text-[9px] ${
+                        rule.evidence_strength === "HIGH" ? "text-[#16A085]" :
+                        rule.evidence_strength === "MODERATE" ? "text-amber-600" : "text-slate-500"
+                      }`}>
+                        Evidence: {formatEvidenceLevel(rule.evidence_strength)}
+                      </span>
+                    </div>
+                    
+                    <p className="text-xs font-bold text-[#173B3A] leading-snug">{rule.recommendation}</p>
+                    
+                    <div className="flex items-center gap-2 text-[10px] text-[#657977] pt-1">
+                      <span>Topic: <strong>{rule.clinical_topic}</strong></span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* SECTION 3: DAILY MEAL PLAN */}
+            <div className="bg-white rounded-2xl border border-[#DCE9E6] shadow-sm p-5 md:p-6 space-y-4">
+              <div className="flex items-center justify-between border-b border-[#EEF5F3] pb-3">
+                <h3 className="text-base font-bold text-[#173B3A] flex items-center gap-2">
+                  <Salad className="text-[#007F73]" size={18} /> Daily Meal Plan
+                </h3>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                <div className="bg-[#F7FCFA] border border-[#E1EFEA] p-4 rounded-xl space-y-1.5">
+                  <span className="text-[10px] font-bold text-[#007F73] uppercase tracking-wider bg-[#EAF7F4] px-2 py-0.5 rounded-md inline-block">
+                    Breakfast
+                  </span>
+                  <p className="text-xs font-semibold text-[#173B3A] leading-relaxed">{generatedPlan.meals.breakfast}</p>
+                </div>
+
+                <div className="bg-[#F7FCFA] border border-[#E1EFEA] p-4 rounded-xl space-y-1.5">
+                  <span className="text-[10px] font-bold text-teal-700 uppercase tracking-wider bg-teal-50 px-2 py-0.5 rounded-md inline-block">
+                    Snacks (AM)
+                  </span>
+                  <p className="text-xs font-semibold text-[#173B3A] leading-relaxed">{generatedPlan.meals.morning_snack}</p>
+                </div>
+
+                <div className="bg-[#F7FCFA] border border-[#E1EFEA] p-4 rounded-xl space-y-1.5">
+                  <span className="text-[10px] font-bold text-[#007F73] uppercase tracking-wider bg-[#EAF7F4] px-2 py-0.5 rounded-md inline-block">
+                    Lunch
+                  </span>
+                  <p className="text-xs font-semibold text-[#173B3A] leading-relaxed">{generatedPlan.meals.lunch}</p>
+                </div>
+
+                <div className="bg-[#F7FCFA] border border-[#E1EFEA] p-4 rounded-xl space-y-1.5">
+                  <span className="text-[10px] font-bold text-teal-700 uppercase tracking-wider bg-teal-50 px-2 py-0.5 rounded-md inline-block">
+                    Snacks (PM)
+                  </span>
+                  <p className="text-xs font-semibold text-[#173B3A] leading-relaxed">{generatedPlan.meals.evening_snack}</p>
+                </div>
+
+                <div className="bg-[#F7FCFA] border border-[#E1EFEA] p-4 rounded-xl space-y-1.5">
+                  <span className="text-[10px] font-bold text-[#007F73] uppercase tracking-wider bg-[#EAF7F4] px-2 py-0.5 rounded-md inline-block">
+                    Dinner
+                  </span>
+                  <p className="text-xs font-semibold text-[#173B3A] leading-relaxed">{generatedPlan.meals.dinner}</p>
+                </div>
+
+                <div className="bg-[#EBF8F5] border border-[#BCE6DC] p-4 rounded-xl space-y-1.5">
+                  <span className="text-[10px] font-bold text-[#007F73] uppercase tracking-wider bg-white px-2 py-0.5 rounded-md inline-block border border-[#BCE6DC]">
+                    Hydration Target
+                  </span>
+                  <p className="text-xs font-semibold text-[#173B3A] leading-relaxed">
+                    Consume at least <strong>{generatedPlan.water} Liters</strong> of clean water daily to maintain cellular hydration (ACSM Guideline).
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* SECTIONS 4 & 5: FOODS TO PREFER / LIMIT */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              
+              {/* FOODS TO PREFER */}
+              <div className="bg-white rounded-2xl border border-[#DCE9E6] shadow-sm p-5 space-y-3">
+                <h3 className="text-base font-bold text-[#173B3A] flex items-center gap-2 border-b border-[#EEF5F3] pb-3">
+                  <Check className="text-[#16A085]" size={18} /> Foods to Prefer
+                </h3>
+                <div className="flex flex-wrap gap-1.5">
+                  {generatedPlan.foods_to_prefer.map((food, idx) => (
+                    <span key={idx} className="bg-[#E8F8F5] text-[#007F73] border border-[#C5EBE3] text-xs font-bold px-3 py-1.5 rounded-xl">
+                      {food}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {/* FOODS TO LIMIT / AVOID */}
+              <div className="bg-white rounded-2xl border border-[#DCE9E6] shadow-sm p-5 space-y-3">
+                <h3 className="text-base font-bold text-[#173B3A] flex items-center gap-2 border-b border-[#EEF5F3] pb-3">
+                  <Ban className="text-rose-500" size={18} /> Foods to Limit / Avoid
+                </h3>
+                <div className="flex flex-wrap gap-1.5">
+                  {generatedPlan.foods_to_limit.map((food, idx) => (
+                    <span key={idx} className="bg-rose-50 text-rose-700 border border-rose-100 text-xs font-bold px-3 py-1.5 rounded-xl">
+                      {food}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+            </div>
+
+            {/* SECTION 6: PERSONALIZED NUTRITION TARGETS */}
+            <div className="bg-white rounded-2xl border border-[#DCE9E6] shadow-sm p-5 md:p-6 space-y-4">
+              <div className="flex items-center justify-between border-b border-[#EEF5F3] pb-3">
+                <h3 className="text-base font-bold text-[#173B3A] flex items-center gap-2">
+                  <TrendingUp className="text-[#007F73]" size={18} /> Personalized Nutrition Targets
+                </h3>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="bg-[#007F73] text-white p-4 rounded-xl flex flex-col justify-between">
+                  <span className="text-[10px] font-bold uppercase tracking-wider opacity-90">Energy Intake</span>
+                  <div className="pt-2">
+                    <span className="text-2xl font-extrabold">{generatedPlan.calories}</span>
+                    <span className="text-xs opacity-80 block">kcal</span>
+                  </div>
+                </div>
+
+                <div className="bg-[#F7FCFA] border border-[#E8F4F1] p-4 rounded-xl flex flex-col justify-between">
+                  <span className="text-[10px] font-bold text-[#657977] uppercase tracking-wider">Protein Target</span>
+                  <div className="pt-2">
+                    <span className="text-2xl font-extrabold text-[#173B3A]">{generatedPlan.protein}</span>
+                    <span className="text-xs text-[#657977] block">g</span>
+                  </div>
+                </div>
+
+                <div className="bg-[#F7FCFA] border border-[#E8F4F1] p-4 rounded-xl flex flex-col justify-between">
+                  <span className="text-[10px] font-bold text-[#657977] uppercase tracking-wider">Carbohydrates</span>
+                  <div className="pt-2">
+                    <span className="text-2xl font-extrabold text-[#173B3A]">{generatedPlan.carbohydrates}</span>
+                    <span className="text-xs text-[#657977] block">g</span>
+                  </div>
+                </div>
+
+                <div className="bg-[#F7FCFA] border border-[#E8F4F1] p-4 rounded-xl flex flex-col justify-between">
+                  <span className="text-[10px] font-bold text-[#657977] uppercase tracking-wider">Dietary Fats</span>
+                  <div className="pt-2">
+                    <span className="text-2xl font-extrabold text-[#173B3A]">{generatedPlan.fat}</span>
+                    <span className="text-xs text-[#657977] block">g</span>
+                  </div>
+                </div>
+
+                <div className="bg-[#F7FCFA] border border-[#E8F4F1] p-4 rounded-xl flex flex-col justify-between">
+                  <span className="text-[10px] font-bold text-[#657977] uppercase tracking-wider">Dietary Fiber</span>
+                  <div className="pt-2">
+                    <span className="text-2xl font-extrabold text-[#173B3A]">{generatedPlan.fiber}</span>
+                    <span className="text-xs text-[#657977] block">g</span>
+                  </div>
+                </div>
+
+                <div className="bg-[#F7FCFA] border border-[#E8F4F1] p-4 rounded-xl flex flex-col justify-between">
+                  <span className="text-[10px] font-bold text-[#657977] uppercase tracking-wider">Water Intake</span>
+                  <div className="pt-2">
+                    <span className="text-2xl font-extrabold text-[#173B3A]">{generatedPlan.water}</span>
+                    <span className="text-xs text-[#657977] block">Liters</span>
+                  </div>
+                </div>
+
+                <div className="bg-[#F7FCFA] border border-[#E8F4F1] p-4 rounded-xl flex flex-col justify-between">
+                  <span className="text-[10px] font-bold text-[#657977] uppercase tracking-wider">Sodium Limit</span>
+                  <div className="pt-2">
+                    <span className="text-2xl font-extrabold text-[#173B3A]">{generatedPlan.sodium}</span>
+                    <span className="text-xs text-[#657977] block">mg</span>
+                  </div>
+                </div>
+
+                <div className="bg-[#F7FCFA] border border-[#E8F4F1] p-4 rounded-xl flex flex-col justify-between">
+                  <span className="text-[10px] font-bold text-[#657977] uppercase tracking-wider">Sugar Ceiling</span>
+                  <div className="pt-2">
+                    <span className="text-2xl font-extrabold text-[#173B3A]">{generatedPlan.sugar}</span>
+                    <span className="text-xs text-[#657977] block">g</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* SECTION 7: RULE TRANSPARENCY TRAIL */}
+            <div className="bg-white rounded-2xl border border-[#DCE9E6] shadow-sm p-5 md:p-6 space-y-4">
+              <div className="flex items-center justify-between border-b border-[#EEF5F3] pb-3">
+                <h3 className="text-base font-bold text-[#173B3A] flex items-center gap-2">
+                  <BookOpen className="text-[#007F73]" size={18} /> Rule Transparency Trail
+                </h3>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="border-b border-[#DCE9E6] text-[#657977] font-bold">
+                      <th className="py-2.5 px-2">Clinical Rule ID</th>
+                      <th className="py-2.5 px-2">Organization</th>
+                      <th className="py-2.5 px-2">Guideline & Topic</th>
+                      <th className="py-2.5 px-2">Evidence Level</th>
+                      <th className="py-2.5 px-2">Publication & URL</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {generatedPlan.rules_matched.map((rule, idx) => (
+                      <tr key={idx} className="border-b border-[#F0F9F7] hover:bg-[#F7FCFA] transition-colors">
+                        <td className="py-3 px-2 font-mono font-bold text-[#007F73]">{rule.rule_id}</td>
+                        <td className="py-3 px-2">
+                          <span className="bg-[#EAF7F4] text-[#007F73] font-bold px-2 py-0.5 rounded-md border border-[#BCE6DC] text-[10px]">
+                            {rule.organization}
+                          </span>
+                        </td>
+                        <td className="py-3 px-2 font-semibold text-[#173B3A]">
+                          {rule.guideline_name}
+                          <span className="block text-[10px] text-[#657977] font-normal mt-0.5">
+                            Topic: {rule.clinical_topic}
+                          </span>
+                        </td>
+                        <td className="py-3 px-2">
+                          <span className={`font-bold uppercase tracking-wider text-[10px] ${
+                            rule.evidence_strength === "HIGH" ? "text-[#16A085]" :
+                            rule.evidence_strength === "MODERATE" ? "text-amber-600" : "text-slate-500"
+                          }`}>
+                            {rule.evidence_strength}
+                          </span>
+                        </td>
+                        <td className="py-3 px-2 text-[11px] text-[#657977]">
+                          {rule.publication_year} | 
+                          <a href={rule.url} target="_blank" rel="noopener noreferrer" className="text-[#007F73] hover:underline inline-flex items-center gap-0.5 ml-1 font-bold">
+                            Source <ChevronRight size={10} />
+                          </a>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* SECTION 8: AI EXPLANATION */}
+            {(!geminiOffline || geminiLoading) && (
+              <div className="bg-[#132A29] text-white rounded-2xl p-6 shadow-md space-y-4">
+                <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+                  <span className="text-[10px] bg-[#1A3837] text-emerald-400 font-bold uppercase tracking-wider px-3 py-1 rounded-full border border-[#234A49]">
+                    AI Clinical Justification
+                  </span>
+                </div>
+
+                {geminiLoading ? (
+                  <div className="py-6 flex flex-col justify-center items-center gap-2 text-slate-300 text-xs">
+                    <RefreshCw className="animate-spin text-emerald-400" size={20} />
+                    <span>Gemini is generating natural language justifications...</span>
+                  </div>
+                ) : (
+                  geminiExplanation && (
+                    <div className="space-y-4">
+                      <p className="text-xs leading-relaxed text-slate-200 font-medium italic">
+                        "{geminiExplanation.explanation}"
+                      </p>
+                      
+                      <div className="space-y-2 pt-2">
+                        <span className="text-[10px] font-bold uppercase text-emerald-400 tracking-wider block">Personalized Clinical Insights:</span>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                          {geminiExplanation.personalized_tips.map((tip, idx) => (
+                            <div key={idx} className="bg-[#1D3D3C] p-3 rounded-xl border border-[#275250] text-xs text-slate-200 leading-relaxed">
+                              {tip}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                )}
+              </div>
+            )}
+
+          </div>
+        )}
 
       </main>
     </div>

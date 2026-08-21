@@ -26,8 +26,8 @@ const SidebarNavBtn = ({ icon: Icon, label, tab, activeTab, onClick }) => (
     onClick={onClick}
     className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-all duration-200 ${
       activeTab === tab
-        ? 'bg-[#005A51]/5 text-[#005A51] border border-[#005A51]/10'
-        : 'text-slate-500 hover:text-[#005A51] hover:bg-slate-50 border border-transparent'
+        ? 'bg-[#007F73] text-white shadow-sm shadow-[#007F73]/20 font-extrabold'
+        : 'text-[#6D807E] hover:text-[#007F73] hover:bg-[#E8F8F5] border border-transparent font-semibold'
     }`}
   >
     <Icon size={18} />
@@ -52,6 +52,12 @@ const PatientDashboard = () => {
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [sendSuccess, setSendSuccess] = useState(false);
+  const [userInfo, setUserInfo] = useState({
+    fullName: "Patient",
+    firstName: "Patient",
+    initials: "P",
+    patientId: "#4829"
+  });
 
   // 🤖 VOICE CHATBOT STATE
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -71,7 +77,8 @@ const PatientDashboard = () => {
   const [ddiWarning, setDdiWarning] = useState(null);
   const [ddiChecking, setDdiChecking] = useState(false);
 
-  // 🆘 EMERGENCY SOS STATE
+  // 🆘 EMERGENCY SOS & LOVED ONE CONTACT STATE
+  const [emergencyContactName, setEmergencyContactName] = useState("");
   const [emergencyContact, setEmergencyContact] = useState("");
   const [emergencyEmail, setEmergencyEmail] = useState("");
   const [savingContact, setSavingContact] = useState(false);
@@ -103,32 +110,59 @@ const PatientDashboard = () => {
       setDoctorsList(docs);
     } else {
       setDoctorsList([
-        { id: "doc-1", full_name: "Sarah Jenkins", rating: 4.9 },
-        { id: "doc-2", full_name: "Marcus Rodriguez", rating: 4.8 },
-        { id: "doc-3", full_name: "Amit Patel", rating: 4.7 }
+        { id: "doc-1", full_name: "Dr. Sarah Jenkins", rating: 4.9 },
+        { id: "doc-2", full_name: "Dr. Marcus Rodriguez", rating: 4.8 },
+        { id: "doc-3", full_name: "Dr. Amit Patel", rating: 4.7 }
       ]);
     }
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
+        let resolvedName = "";
         const { data: profile } = await supabase
           .from('profiles')
-          .select('emergency_phone, emergency_email')
+          .select('full_name, emergency_contact_name, emergency_phone, emergency_email')
           .eq('id', user.id)
           .single();
+
         if (profile) {
+          if (profile.full_name) resolvedName = profile.full_name;
+          if (profile.emergency_contact_name) setEmergencyContactName(profile.emergency_contact_name);
           if (profile.emergency_phone) setEmergencyContact(profile.emergency_phone);
           if (profile.emergency_email) setEmergencyEmail(profile.emergency_email);
         }
-      } else {
-        setEmergencyContact("+91 98765 43210");
-        setEmergencyEmail("emergency-alert@medai.com");
+
+        if (!resolvedName && user.user_metadata?.full_name) {
+          resolvedName = user.user_metadata.full_name;
+        }
+        if (!resolvedName && user.user_metadata?.name) {
+          resolvedName = user.user_metadata.name;
+        }
+        if (!resolvedName && user.email) {
+          const emailPrefix = user.email.split('@')[0].replace(/[0-9]/g, '').replace(/[^a-zA-Z]/g, ' ').trim();
+          if (emailPrefix) {
+            resolvedName = emailPrefix.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+          }
+        }
+        if (!resolvedName) resolvedName = "Patient";
+
+        const nameParts = resolvedName.trim().split(/\s+/);
+        const firstName = nameParts[0] || "Patient";
+        const initials = nameParts.length > 1
+          ? (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase()
+          : firstName.slice(0, 2).toUpperCase();
+        const pid = "#" + (user.id ? user.id.slice(0, 4).toUpperCase() : "4829");
+
+        setUserInfo({
+          fullName: resolvedName,
+          firstName: firstName,
+          initials: initials,
+          patientId: pid
+        });
       }
     } catch (err) {
-      console.warn('⚠️ Could not load emergency contact from profile:', err.message);
-      setEmergencyContact("+91 98765 43210");
-      setEmergencyEmail("emergency-alert@medai.com");
+      console.warn('⚠️ Could not load profile:', err.message);
     }
   };
 
@@ -307,34 +341,37 @@ const PatientDashboard = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-slate-50/50 font-plus text-slate-900 selection:bg-[#005A51]/10">
+    <div className="flex min-h-screen bg-gradient-to-br from-[#FFFFFF] via-[#F4FBFA] to-[#E9F8F6] font-plus text-[#173B3A] selection:bg-[#007F73]/10">
 
       {/* SIDEBAR */}
-      <aside className="hidden lg:flex flex-col w-72 bg-white border-r border-slate-100 p-8 fixed h-full shadow-sm z-30 justify-between">
-        <div className="space-y-8">
-          <div className="flex items-center gap-3">
-            <div className="bg-[#005A51] p-2.5 rounded-xl shadow-lg shadow-[#005A51]/20">
-              <Activity className="text-white" size={22} strokeWidth={2.5} />
+      <aside className="hidden lg:flex flex-col w-72 bg-white/90 backdrop-blur-sm border-r border-[#DFEBE8] p-7 fixed h-full shadow-sm z-30 justify-between">
+        <div className="space-y-7">
+          <div className="flex items-center gap-3 pt-1">
+            <div className="bg-[#007F73] p-2.5 rounded-2xl shadow-lg shadow-[#007F73]/20 text-white">
+              <Activity size={22} strokeWidth={2.5} />
             </div>
-            <span className="font-outfit font-extrabold text-2xl text-slate-900 tracking-tight">MedAI</span>
+            <div>
+              <span className="font-outfit font-extrabold text-2xl text-[#173B3A] tracking-tight block leading-none">MedAI</span>
+              <span className="text-[10px] font-bold uppercase tracking-widest text-[#94A5A3] mt-1 block">Humanized Precision</span>
+            </div>
           </div>
 
-          <nav className="space-y-1.5 pt-4">
+          <nav className="space-y-1.5 pt-3">
             <SidebarNavBtn icon={LayoutDashboard} label="Dashboard" tab="live" activeTab={activeTab} onClick={() => setActiveTab("live")} />
-            <SidebarNavBtn icon={History} label="Records" tab="history" activeTab={activeTab} onClick={() => setActiveTab("history")} />
+            <SidebarNavBtn icon={History} label="Health Records" tab="history" activeTab={activeTab} onClick={() => setActiveTab("history")} />
             <SidebarNavBtn icon={Pill} label="Pharmacy & Meds" tab="pharmacy" activeTab={activeTab} onClick={() => setActiveTab("pharmacy")} />
 
             <button
               onClick={() => navigate("/patient/diet-planner")}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-all duration-200 text-slate-500 hover:text-[#005A51] hover:bg-slate-50 border border-transparent"
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-sm transition-all duration-200 text-[#6D807E] hover:text-[#007F73] hover:bg-[#E8F8F5] border border-transparent"
             >
               <Salad size={18} />
-              <span>AI Diet Planner</span>
+              <span>AI Health Planner</span>
             </button>
 
             <button
               onClick={() => navigate("/patient/personalized-analysis")}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-sm transition-all duration-200 text-slate-500 hover:text-[#005A51] hover:bg-slate-50 border border-transparent"
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-sm transition-all duration-200 text-[#6D807E] hover:text-[#007F73] hover:bg-[#E8F8F5] border border-transparent"
             >
               <BarChart3 size={18} />
               <span>Personalized Insights</span>
@@ -342,23 +379,38 @@ const PatientDashboard = () => {
           </nav>
         </div>
 
-        <button
-          onClick={handleLogout}
-          className="flex items-center gap-3 px-4 py-3 text-slate-400 font-bold text-sm hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all duration-200"
-        >
-          <LogOut size={18} />
-          <span>Sign Out</span>
-        </button>
+        <div className="space-y-3 pt-4 border-t border-[#DFEBE8]">
+          <button
+            onClick={() => setActiveTab("live")}
+            className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-extrabold text-[11px] tracking-wider uppercase bg-rose-50/70 border border-rose-200/60 text-rose-600 hover:bg-rose-100/50 transition-all"
+          >
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
+              <span>Emergency Triage</span>
+            </div>
+            <span className="text-[9px] font-black bg-white px-2 py-0.5 rounded border border-rose-200">SOS</span>
+          </button>
+
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-4 py-3 text-[#94A5A3] font-bold text-sm hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all duration-200"
+          >
+            <LogOut size={18} />
+            <span>Sign Out</span>
+          </button>
+        </div>
       </aside>
 
       <main className="flex-1 lg:ml-72 p-6 md:p-10 max-w-6xl mx-auto w-full">
         {activeTab === "live" && (
           <LiveTriageTab
+            userInfo={userInfo}
             inputs={inputs} setInputs={setInputs}
             result={result} loading={loading}
             hospitalList={hospitalList} showHospitals={showHospitals}
             userLocation={userLocation} manualMode={manualMode} setManualMode={setManualMode}
             sosBannerVisible={sosBannerVisible}
+            emergencyContactName={emergencyContactName} setEmergencyContactName={setEmergencyContactName}
             emergencyContact={emergencyContact} emergencyEmail={emergencyEmail}
             setEmergencyContact={setEmergencyContact} setEmergencyEmail={setEmergencyEmail}
             savingContact={savingContact} setSavingContact={setSavingContact}
@@ -371,7 +423,16 @@ const PatientDashboard = () => {
         )}
 
         {activeTab === "history" && (
-          <HistoryTab historyReports={historyReports} loadingHistory={loadingHistory} />
+          <HistoryTab
+            historyReports={historyReports}
+            loadingHistory={loadingHistory}
+            userInfo={userInfo}
+            emergencyContactName={emergencyContactName} setEmergencyContactName={setEmergencyContactName}
+            emergencyContact={emergencyContact} setEmergencyContact={setEmergencyContact}
+            emergencyEmail={emergencyEmail} setEmergencyEmail={setEmergencyEmail}
+            savingContact={savingContact} setSavingContact={setSavingContact}
+            setContactSaved={setContactSaved}
+          />
         )}
 
         {activeTab === "pharmacy" && (

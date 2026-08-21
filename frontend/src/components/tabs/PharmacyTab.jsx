@@ -7,8 +7,8 @@ import {
   CheckCircle, RefreshCw, Send, X
 } from "lucide-react";
 
-const FIELD_CLASS = "w-full bg-white border border-slate-200 px-3.5 py-3 rounded-xl outline-none focus:border-[#005A51] focus:ring-2 focus:ring-[#005A51]/10 transition-all font-semibold text-slate-800 text-sm placeholder:text-slate-400/90";
-const LABEL_CLASS = "text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-2 ml-1";
+const FIELD_CLASS = "w-full bg-[#F2FAF8] border border-[#DFEBE8] px-3.5 py-2.5 rounded-xl outline-none focus:border-[#007F73] focus:ring-2 focus:ring-[#007F73]/10 transition-all font-semibold text-[#173B3A] text-xs placeholder:text-[#94A5A3]";
+const LABEL_CLASS = "text-[10px] font-black uppercase tracking-wider text-[#6D807E] block mb-1.5 ml-1";
 
 const PharmacyLink = ({ href, bg, border, text, hover, label }) => (
   <a href={href} target="_blank" rel="noreferrer"

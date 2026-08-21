@@ -9,10 +9,14 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     full_name TEXT,
     role TEXT NOT NULL CHECK (role IN ('patient', 'doctor')),
     rating INTEGER DEFAULT 0,
+    emergency_contact_name TEXT,
     emergency_phone TEXT,
     emergency_email TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
+
+-- Idempotent column addition if table already exists
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS emergency_contact_name TEXT;
 
 -- Enable RLS on profiles table
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
