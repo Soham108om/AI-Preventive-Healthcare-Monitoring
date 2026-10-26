@@ -26,14 +26,26 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
 app = Flask(__name__)
-CORS(app)
+default_origins = [
+    "https://ai-preventive-healthcare-monitoring.vercel.app",
+    "http://localhost:5173",
+    "https://localhost",
+    "capacitor://localhost",
+]
+configured_origins = [
+    origin.strip().rstrip("/")
+    for origin in os.environ.get("FRONTEND_ORIGINS", "").split(",")
+    if origin.strip()
+]
+CORS(app, origins=list(dict.fromkeys(default_origins + configured_origins)))
 
 # ==========================================
 # 1. SETUP LOCAL MODEL
 # ==========================================
 print("📂 Loading Local AI Model...")
 try:
-    model = joblib.load("risk_model.pkl")
+    model_path = os.path.join(os.path.dirname(__file__), "risk_model.pkl")
+    model = joblib.load(model_path)
     print("✅ Local Random Forest Model Loaded!")
 except Exception as e:
     print(f"❌ Error loading local model: {e}")
@@ -1258,4 +1270,3 @@ Ensure the output is strictly valid JSON without preamble or explanations.
 # ==========================================
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
-
