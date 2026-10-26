@@ -1,4 +1,5 @@
 import { UserProfile, SmartwatchVitals, UserInputs, DietPlanOutput } from "./NutritionTypes";
+import { API_BASE_URL } from "../../apiConfig";
 
 export interface GeminiExplanation {
   explanation: string;
@@ -39,7 +40,7 @@ export async function fetchNutritionExplanation(
   vitals: SmartwatchVitals,
   inputs: UserInputs
 ): Promise<GeminiExplanation> {
-  const response = await fetch("http://localhost:5000/diet_explain", {
+  const response = await fetch(`${API_BASE_URL}/diet_explain`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -91,7 +92,7 @@ export async function fetchAiGeneratedDietPlan(
   vitals: SmartwatchVitals,
   inputs: UserInputs
 ): Promise<AiDietPlanOutput> {
-  const response = await fetch("http://localhost:5000/generate_ai_diet", {
+  const response = await fetch(`${API_BASE_URL}/generate_ai_diet`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -119,4 +120,3 @@ export async function fetchAiGeneratedDietPlan(
 
   throw new Error(data.error || "AI Diet generation returned failure");
 }
-

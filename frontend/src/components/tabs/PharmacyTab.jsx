@@ -1,6 +1,7 @@
 // PharmacyTab.jsx — Digital Pillbox Tab
 // Extracted from PatientDashboard.jsx
 import { useRef } from "react";
+import { API_BASE_URL } from "../../apiConfig";
 import {
   Pill, ShoppingCart, AlertOctagon, ExternalLink,
   CalendarDays, Trash2, Camera, UploadCloud,
@@ -45,7 +46,7 @@ const PharmacyTab = ({
     reader.onloadend = async () => {
       const base64Data = reader.result;
       try {
-        const res = await fetch("http://localhost:5000/recognize_pill", {
+        const res = await fetch(`${API_BASE_URL}/recognize_pill`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ image: base64Data })
@@ -78,7 +79,7 @@ const PharmacyTab = ({
     if (allMedNames.length >= 2) {
       setDdiChecking(true);
       try {
-        const res = await fetch("http://localhost:5000/check_ddi", {
+        const res = await fetch(`${API_BASE_URL}/check_ddi`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ medications: allMedNames }),

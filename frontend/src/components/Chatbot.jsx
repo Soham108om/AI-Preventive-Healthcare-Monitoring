@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { MessageSquare, X, Send, Activity, Mic, Square, Volume2 } from "lucide-react";
+import { API_BASE_URL } from "../apiConfig";
 import MedAILogo from "./MedAILogo";
 
 // ============================================================
@@ -112,7 +113,7 @@ const Chatbot = () => {
     setMessages((prev) => [...prev, { text: "__loading__", sender: "bot" }]);
 
     try {
-      const response = await fetch("http://localhost:5000/chat", {
+      const response = await fetch(`${API_BASE_URL}/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message: textToSend, language: currentLang }),

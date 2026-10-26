@@ -1,5 +1,6 @@
 // LiveTriageTab.jsx — AI Vitals Assessment Tab
 import { useState } from "react";
+import { API_BASE_URL } from "../../apiConfig";
 import {
   Activity, Ambulance, MapPin, Phone,
   RefreshCw, HeartPulse, Download,
@@ -325,7 +326,7 @@ const LiveTriageTab = ({
         }
       };
 
-      const res = await fetch("http://localhost:5000/share-report", {
+      const res = await fetch(`${API_BASE_URL}/share-report`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
@@ -1090,4 +1091,3 @@ const LiveTriageTab = ({
 };
 
 export default LiveTriageTab;
-

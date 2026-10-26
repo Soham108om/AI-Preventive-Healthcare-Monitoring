@@ -9,6 +9,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { useGoogleLogin } from '@react-oauth/google';
 import { fetchGoogleFitData } from '../services/googleFit';
+import { API_BASE_URL } from "../apiConfig";
 import {
   getSortedHospitals, triggerBrowserNotification,
   logEmergencyToSupabase, crackFireBoltt, GOOGLE_FIT_SCOPE
@@ -135,7 +136,7 @@ const PersonalizedAnalysis = () => {
         patient_profile: healthProfile
       };
 
-      const res = await fetch("http://localhost:5000/predict", { 
+      const res = await fetch(`${API_BASE_URL}/predict`, { 
         method: "POST", 
         headers: { "Content-Type": "application/json" }, 
         body: JSON.stringify(payload) 

@@ -7,6 +7,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { useGoogleLogin } from '@react-oauth/google';
 import { fetchGoogleFitData } from '../services/googleFit';
+import { API_BASE_URL } from "../apiConfig";
 import {
   getSortedHospitals,
   triggerBrowserNotification,
@@ -243,7 +244,7 @@ const PatientDashboard = () => {
     setChatInput("");
 
     try {
-      const res = await fetch("http://localhost:5000/chat", {
+      const res = await fetch(`${API_BASE_URL}/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -306,7 +307,7 @@ const PatientDashboard = () => {
         emergency_email: emergencyEmail,
         location: userLocation ? { lat: userLocation.lat, lng: userLocation.lng } : {}
       };
-      const res = await fetch("http://localhost:5000/predict", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+      const res = await fetch(`${API_BASE_URL}/predict`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       const data = await res.json();
       setResult(data);
 

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { RefreshCw, CheckCircle, Clock, Share2, Mail, MessageSquare, AlertCircle, X, Edit2, Loader2, Sparkles, CheckCircle2 } from "lucide-react";
+import { API_BASE_URL } from "../../apiConfig";
 import supabase from "../../services/supabase";
 
 const HistoryTab = ({
@@ -97,7 +98,7 @@ const HistoryTab = ({
         }
       };
 
-      const res = await fetch("http://localhost:5000/share-report", {
+      const res = await fetch(`${API_BASE_URL}/share-report`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
