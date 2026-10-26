@@ -148,6 +148,24 @@ const PersonalizedAnalysis = () => {
       }
       setResult(data);
 
+      // 🩺 AUTO-PERSIST PERSONALIZED ANALYSIS TO SUPABASE MEDICAL_REPORTS
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const reportSummary = data.personalized_insights?.personalized_explanation || data.deep_analysis?.simple_summary || `Personalized AI Analysis: ${data.triage_result} Risk detected (HR: ${inputs.heart_rate} BPM, SpO2: ${inputs.spo2}%, BP: ${inputs.systolic_bp}/${inputs.diastolic_bp} mmHg).`;
+          await supabase.from('medical_reports').insert([{
+            patient_id: user.id,
+            doctor_id: selectedDoctorId || null,
+            vitals: inputs,
+            ai_summary: reportSummary,
+            risk_level: data.triage_result || "LOW",
+            status: selectedDoctorId ? "Pending Review" : "Self Diagnosed"
+          }]);
+        }
+      } catch (saveErr) {
+        console.warn("⚠️ Could not auto-save personalized report to Supabase history:", saveErr);
+      }
+
       if (data.triage_result === 'HIGH') {
         handleFindHospital();
         triggerBrowserNotification(inputs, emergencyContact);
@@ -201,7 +219,7 @@ const PersonalizedAnalysis = () => {
     };
   };
 
-  const runLocalFallback = () => {
+  const runLocalFallback = async () => {
     const hr = parseFloat(inputs.heart_rate);
     const spo2 = parseFloat(inputs.spo2);
     const sbp = parseFloat(inputs.systolic_bp);
@@ -227,6 +245,23 @@ const PersonalizedAnalysis = () => {
 
     setResult(mockResult);
 
+    // 🩺 Save fallback analysis to Supabase
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase.from('medical_reports').insert([{
+          patient_id: user.id,
+          doctor_id: selectedDoctorId || null,
+          vitals: inputs,
+          ai_summary: localInsights.personalized_explanation || `Personalized Assessment: ${triageResult} Risk`,
+          risk_level: triageResult,
+          status: selectedDoctorId ? "Pending Review" : "Self Diagnosed"
+        }]);
+      }
+    } catch (saveErr) {
+      console.warn("⚠️ Could not auto-save fallback report to Supabase:", saveErr);
+    }
+
     if (triageResult === 'HIGH') {
       handleFindHospital();
       triggerBrowserNotification(inputs, emergencyContact);
@@ -235,6 +270,7 @@ const PersonalizedAnalysis = () => {
       setSosAlertSent(true);
     }
   };
+
 
   // Doctor Transmission
   const handleSendToDoctor = async () => {

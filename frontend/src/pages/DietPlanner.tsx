@@ -5,13 +5,13 @@ import {
   Activity, ArrowLeft, Apple, ShieldCheck, Heart, User, Check, Info,
   TrendingUp, Award, Compass, AlertTriangle, AlertCircle, Droplet,
   ChevronRight, RefreshCw, FileText, DollarSign, Ban, BookOpen, Utensils,
-  Target, Salad, Pill, LayoutDashboard, LogOut, CheckCircle2, Play
+  Target, Salad, Pill, LayoutDashboard, LogOut, CheckCircle2, Play, Sparkles, Lightbulb
 } from "lucide-react";
 
 // CDSS Service Imports
 import { UserProfile, SmartwatchVitals, UserInputs, DietPlanOutput } from "../services/nutrition/NutritionTypes";
 import { generateNutritionRecommendations } from "../services/nutrition/NutritionRecommendationService";
-import { fetchNutritionExplanation, GeminiExplanation } from "../services/nutrition/NutritionExplanationService";
+import { fetchNutritionExplanation, fetchAiGeneratedDietPlan, GeminiExplanation, AiDietPlanOutput } from "../services/nutrition/NutritionExplanationService";
 import { formatEvidenceLevel } from "../services/nutrition/NutritionUtils";
 import MedAILogo from "../components/MedAILogo";
 
@@ -38,13 +38,16 @@ export default function DietPlanner() {
     budget: "Medium"
   });
 
-  // Output States
+  // Output States: Option 1 (Standard CDSS Plan) & Option 2 (AI Dynamic Plan)
+  const [selectedPlanMode, setSelectedPlanMode] = useState<"standard" | "ai_custom">("standard");
   const [generatedPlan, setGeneratedPlan] = useState<DietPlanOutput | null>(null);
+  const [aiGeneratedPlan, setAiGeneratedPlan] = useState<AiDietPlanOutput | null>(null);
   const [geminiExplanation, setGeminiExplanation] = useState<GeminiExplanation | null>(null);
   
   // Loading & Error States
   const [generating, setGenerating] = useState(false);
   const [geminiLoading, setGeminiLoading] = useState(false);
+  const [aiPlanLoading, setAiPlanLoading] = useState(false);
   const [geminiOffline, setGeminiOffline] = useState(false);
 
   // Fetch Patient Dossier on mount
@@ -104,15 +107,16 @@ export default function DietPlanner() {
     e.preventDefault();
     setGenerating(true);
     setGeminiLoading(true);
+    setAiPlanLoading(true);
     setGeminiOffline(false);
     setGeminiExplanation(null);
 
-    // 1. Run local deterministic Clinical Decision Support Engine
+    // 1. Run local deterministic Clinical Decision Support Engine (Option 1 - Presets)
     const localPlan = generateNutritionRecommendations(healthProfile, vitals, userInputs);
     setGeneratedPlan(localPlan);
     setGenerating(false);
 
-    // 2. Query Gemini for explanation (Optional/Proxy)
+    // 2. Query Gemini for clinical explanation
     try {
       const explanationData = await fetchNutritionExplanation(localPlan, healthProfile, vitals, userInputs);
       setGeminiExplanation(explanationData);
@@ -121,6 +125,16 @@ export default function DietPlanner() {
       setGeminiOffline(true);
     } finally {
       setGeminiLoading(false);
+    }
+
+    // 3. Query dynamic Option 2 (AI-Generated Diet Plan based strictly on user details)
+    try {
+      const aiPlan = await fetchAiGeneratedDietPlan(healthProfile, vitals, userInputs);
+      setAiGeneratedPlan(aiPlan);
+    } catch (err) {
+      console.warn("AI dynamic diet generation failed:", err);
+    } finally {
+      setAiPlanLoading(false);
     }
   };
 
@@ -143,6 +157,7 @@ export default function DietPlanner() {
     if (userInputs.goal === "Muscle Gain") return "Muscle Gain (Protein Hypertrophy)";
     return "General Healthy Diet Guidelines";
   };
+
 
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-[#FFFFFF] via-[#F6FCFA] to-[#E8F6F3] font-sans text-[#173B3A] selection:bg-[#007F73]/10">
@@ -499,302 +514,587 @@ export default function DietPlanner() {
         </div>
 
         {/* OUTPUT SECTIONS WHEN PLAN IS GENERATED */}
-        {generatedPlan && (
+        {(generatedPlan || aiGeneratedPlan) && (
           <div className="space-y-6">
             
-            {/* PERSONALIZED NUTRITION SUMMARY BANNER */}
-            <div className="bg-[#EAF7F4] border border-[#BCE6DC] p-5 rounded-2xl space-y-1">
-              <span className="text-[10px] font-bold text-[#007F73] uppercase tracking-wider block">Personalized Clinical Summary</span>
-              <h4 className="text-lg font-extrabold text-[#173B3A]">{getPersonalizedGoalTitle()}</h4>
-              <p className="text-xs text-[#657977] font-medium">
-                Evaluated dynamically against medical profile data and active smartwatch vitals triage thresholds.
-              </p>
+            {/* DUAL PLAN SELECTOR TABS */}
+            <div className="bg-white p-2 rounded-2xl border border-[#DCE9E6] shadow-sm flex flex-col sm:flex-row gap-2">
+              <button
+                type="button"
+                onClick={() => setSelectedPlanMode("standard")}
+                className={`flex-1 flex items-center justify-center gap-2.5 py-3 px-4 rounded-xl font-bold text-xs sm:text-sm transition-all ${
+                  selectedPlanMode === "standard"
+                    ? "bg-[#007F73] text-white shadow-md shadow-[#007F73]/20"
+                    : "bg-transparent text-[#657977] hover:text-[#173B3A] hover:bg-[#F0F9F7]"
+                }`}
+              >
+                <ShieldCheck size={17} />
+                <span>Option 1: Standard CDSS Plan</span>
+                <span className={`text-[10px] px-2 py-0.5 rounded-full font-extrabold hidden sm:inline ${
+                  selectedPlanMode === "standard" ? "bg-white/20 text-white" : "bg-[#EAF7F4] text-[#007F73]"
+                }`}>
+                  Evidence Rulebook
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setSelectedPlanMode("ai_custom")}
+                className={`flex-1 flex items-center justify-center gap-2.5 py-3 px-4 rounded-xl font-bold text-xs sm:text-sm transition-all ${
+                  selectedPlanMode === "ai_custom"
+                    ? "bg-[#173B3A] text-white shadow-md shadow-[#173B3A]/20"
+                    : "bg-transparent text-[#657977] hover:text-[#173B3A] hover:bg-[#F0F9F7]"
+                }`}
+              >
+                <Sparkles size={17} className={selectedPlanMode === "ai_custom" ? "text-emerald-400 animate-pulse" : "text-[#007F73]"} />
+                <span>Option 2: AI Dynamic Precision Plan</span>
+                <span className={`text-[10px] px-2 py-0.5 rounded-full font-extrabold hidden sm:inline ${
+                  selectedPlanMode === "ai_custom" ? "bg-emerald-500/20 text-emerald-300" : "bg-emerald-50 text-emerald-700"
+                }`}>
+                  {aiPlanLoading ? "Synthesizing..." : "AI Custom"}
+                </span>
+              </button>
             </div>
 
-            {/* SECTION 2: CLINICAL RECOMMENDATIONS */}
-            <div className="bg-white rounded-2xl border border-[#DCE9E6] shadow-sm p-5 md:p-6 space-y-4">
-              <div className="flex items-center justify-between border-b border-[#EEF5F3] pb-3">
-                <h3 className="text-base font-bold text-[#173B3A] flex items-center gap-2">
-                  <Award className="text-[#007F73]" size={18} /> Clinical Recommendations
-                </h3>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {generatedPlan.rules_matched.map((rule, idx) => (
-                  <div key={idx} className="p-3.5 bg-[#F7FCFA] border border-[#E8F4F1] rounded-xl flex flex-col justify-between space-y-2">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="bg-[#E8F6F3] text-[#007F73] font-extrabold text-[10px] px-2.5 py-0.5 rounded-md border border-[#C5EBE3]">
-                        {rule.organization}
-                      </span>
-                      <span className={`font-bold uppercase tracking-wider text-[9px] ${
-                        rule.evidence_strength === "HIGH" ? "text-[#16A085]" :
-                        rule.evidence_strength === "MODERATE" ? "text-amber-600" : "text-slate-500"
-                      }`}>
-                        Evidence: {formatEvidenceLevel(rule.evidence_strength)}
-                      </span>
-                    </div>
-                    
-                    <p className="text-xs font-bold text-[#173B3A] leading-snug">{rule.recommendation}</p>
-                    
-                    <div className="flex items-center gap-2 text-[10px] text-[#657977] pt-1">
-                      <span>Topic: <strong>{rule.clinical_topic}</strong></span>
-                    </div>
+            {/* ═════════════════════════════════════════════════════════════ */}
+            {/* OPTION 1: STANDARD CLINICAL CDSS RULEBOOK PLAN (PRESET)   */}
+            {/* ═════════════════════════════════════════════════════════════ */}
+            {selectedPlanMode === "standard" && generatedPlan && (
+              <div className="space-y-6 animate-in fade-in duration-300">
+                {/* PERSONALIZED NUTRITION SUMMARY BANNER */}
+                <div className="bg-[#EAF7F4] border border-[#BCE6DC] p-5 rounded-2xl space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold text-[#007F73] uppercase tracking-wider block">Option 1 • Standard Clinical CDSS Plan</span>
+                    <span className="bg-white/80 text-[#007F73] font-mono text-[10px] font-bold px-2 py-0.5 rounded border border-[#BCE6DC]">Rule-Verified</span>
                   </div>
-                ))}
-              </div>
-            </div>
-
-            {/* SECTION 3: DAILY MEAL PLAN */}
-            <div className="bg-white rounded-2xl border border-[#DCE9E6] shadow-sm p-5 md:p-6 space-y-4">
-              <div className="flex items-center justify-between border-b border-[#EEF5F3] pb-3">
-                <h3 className="text-base font-bold text-[#173B3A] flex items-center gap-2">
-                  <Salad className="text-[#007F73]" size={18} /> Daily Meal Plan
-                </h3>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
-                <div className="bg-[#F7FCFA] border border-[#E1EFEA] p-4 rounded-xl space-y-1.5">
-                  <span className="text-[10px] font-bold text-[#007F73] uppercase tracking-wider bg-[#EAF7F4] px-2 py-0.5 rounded-md inline-block">
-                    Breakfast
-                  </span>
-                  <p className="text-xs font-semibold text-[#173B3A] leading-relaxed">{generatedPlan.meals.breakfast}</p>
-                </div>
-
-                <div className="bg-[#F7FCFA] border border-[#E1EFEA] p-4 rounded-xl space-y-1.5">
-                  <span className="text-[10px] font-bold text-teal-700 uppercase tracking-wider bg-teal-50 px-2 py-0.5 rounded-md inline-block">
-                    Snacks (AM)
-                  </span>
-                  <p className="text-xs font-semibold text-[#173B3A] leading-relaxed">{generatedPlan.meals.morning_snack}</p>
-                </div>
-
-                <div className="bg-[#F7FCFA] border border-[#E1EFEA] p-4 rounded-xl space-y-1.5">
-                  <span className="text-[10px] font-bold text-[#007F73] uppercase tracking-wider bg-[#EAF7F4] px-2 py-0.5 rounded-md inline-block">
-                    Lunch
-                  </span>
-                  <p className="text-xs font-semibold text-[#173B3A] leading-relaxed">{generatedPlan.meals.lunch}</p>
-                </div>
-
-                <div className="bg-[#F7FCFA] border border-[#E1EFEA] p-4 rounded-xl space-y-1.5">
-                  <span className="text-[10px] font-bold text-teal-700 uppercase tracking-wider bg-teal-50 px-2 py-0.5 rounded-md inline-block">
-                    Snacks (PM)
-                  </span>
-                  <p className="text-xs font-semibold text-[#173B3A] leading-relaxed">{generatedPlan.meals.evening_snack}</p>
-                </div>
-
-                <div className="bg-[#F7FCFA] border border-[#E1EFEA] p-4 rounded-xl space-y-1.5">
-                  <span className="text-[10px] font-bold text-[#007F73] uppercase tracking-wider bg-[#EAF7F4] px-2 py-0.5 rounded-md inline-block">
-                    Dinner
-                  </span>
-                  <p className="text-xs font-semibold text-[#173B3A] leading-relaxed">{generatedPlan.meals.dinner}</p>
-                </div>
-
-                <div className="bg-[#EBF8F5] border border-[#BCE6DC] p-4 rounded-xl space-y-1.5">
-                  <span className="text-[10px] font-bold text-[#007F73] uppercase tracking-wider bg-white px-2 py-0.5 rounded-md inline-block border border-[#BCE6DC]">
-                    Hydration Target
-                  </span>
-                  <p className="text-xs font-semibold text-[#173B3A] leading-relaxed">
-                    Consume at least <strong>{generatedPlan.water} Liters</strong> of clean water daily to maintain cellular hydration (ACSM Guideline).
+                  <h4 className="text-lg font-extrabold text-[#173B3A]">{getPersonalizedGoalTitle()}</h4>
+                  <p className="text-xs text-[#657977] font-medium">
+                    Evaluated deterministically against medical profile data and active smartwatch vitals triage thresholds.
                   </p>
                 </div>
-              </div>
-            </div>
 
-            {/* SECTIONS 4 & 5: FOODS TO PREFER / LIMIT */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              
-              {/* FOODS TO PREFER */}
-              <div className="bg-white rounded-2xl border border-[#DCE9E6] shadow-sm p-5 space-y-3">
-                <h3 className="text-base font-bold text-[#173B3A] flex items-center gap-2 border-b border-[#EEF5F3] pb-3">
-                  <Check className="text-[#16A085]" size={18} /> Foods to Prefer
-                </h3>
-                <div className="flex flex-wrap gap-1.5">
-                  {generatedPlan.foods_to_prefer.map((food, idx) => (
-                    <span key={idx} className="bg-[#E8F8F5] text-[#007F73] border border-[#C5EBE3] text-xs font-bold px-3 py-1.5 rounded-xl">
-                      {food}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              {/* FOODS TO LIMIT / AVOID */}
-              <div className="bg-white rounded-2xl border border-[#DCE9E6] shadow-sm p-5 space-y-3">
-                <h3 className="text-base font-bold text-[#173B3A] flex items-center gap-2 border-b border-[#EEF5F3] pb-3">
-                  <Ban className="text-rose-500" size={18} /> Foods to Limit / Avoid
-                </h3>
-                <div className="flex flex-wrap gap-1.5">
-                  {generatedPlan.foods_to_limit.map((food, idx) => (
-                    <span key={idx} className="bg-rose-50 text-rose-700 border border-rose-100 text-xs font-bold px-3 py-1.5 rounded-xl">
-                      {food}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-            </div>
-
-            {/* SECTION 6: PERSONALIZED NUTRITION TARGETS */}
-            <div className="bg-white rounded-2xl border border-[#DCE9E6] shadow-sm p-5 md:p-6 space-y-4">
-              <div className="flex items-center justify-between border-b border-[#EEF5F3] pb-3">
-                <h3 className="text-base font-bold text-[#173B3A] flex items-center gap-2">
-                  <TrendingUp className="text-[#007F73]" size={18} /> Personalized Nutrition Targets
-                </h3>
-              </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div className="bg-[#007F73] text-white p-4 rounded-xl flex flex-col justify-between">
-                  <span className="text-[10px] font-bold uppercase tracking-wider opacity-90">Energy Intake</span>
-                  <div className="pt-2">
-                    <span className="text-2xl font-extrabold">{generatedPlan.calories}</span>
-                    <span className="text-xs opacity-80 block">kcal</span>
+                {/* SECTION 2: CLINICAL RECOMMENDATIONS */}
+                <div className="bg-white rounded-2xl border border-[#DCE9E6] shadow-sm p-5 md:p-6 space-y-4">
+                  <div className="flex items-center justify-between border-b border-[#EEF5F3] pb-3">
+                    <h3 className="text-base font-bold text-[#173B3A] flex items-center gap-2">
+                      <Award className="text-[#007F73]" size={18} /> Clinical Recommendations
+                    </h3>
                   </div>
-                </div>
-
-                <div className="bg-[#F7FCFA] border border-[#E8F4F1] p-4 rounded-xl flex flex-col justify-between">
-                  <span className="text-[10px] font-bold text-[#657977] uppercase tracking-wider">Protein Target</span>
-                  <div className="pt-2">
-                    <span className="text-2xl font-extrabold text-[#173B3A]">{generatedPlan.protein}</span>
-                    <span className="text-xs text-[#657977] block">g</span>
-                  </div>
-                </div>
-
-                <div className="bg-[#F7FCFA] border border-[#E8F4F1] p-4 rounded-xl flex flex-col justify-between">
-                  <span className="text-[10px] font-bold text-[#657977] uppercase tracking-wider">Carbohydrates</span>
-                  <div className="pt-2">
-                    <span className="text-2xl font-extrabold text-[#173B3A]">{generatedPlan.carbohydrates}</span>
-                    <span className="text-xs text-[#657977] block">g</span>
-                  </div>
-                </div>
-
-                <div className="bg-[#F7FCFA] border border-[#E8F4F1] p-4 rounded-xl flex flex-col justify-between">
-                  <span className="text-[10px] font-bold text-[#657977] uppercase tracking-wider">Dietary Fats</span>
-                  <div className="pt-2">
-                    <span className="text-2xl font-extrabold text-[#173B3A]">{generatedPlan.fat}</span>
-                    <span className="text-xs text-[#657977] block">g</span>
-                  </div>
-                </div>
-
-                <div className="bg-[#F7FCFA] border border-[#E8F4F1] p-4 rounded-xl flex flex-col justify-between">
-                  <span className="text-[10px] font-bold text-[#657977] uppercase tracking-wider">Dietary Fiber</span>
-                  <div className="pt-2">
-                    <span className="text-2xl font-extrabold text-[#173B3A]">{generatedPlan.fiber}</span>
-                    <span className="text-xs text-[#657977] block">g</span>
-                  </div>
-                </div>
-
-                <div className="bg-[#F7FCFA] border border-[#E8F4F1] p-4 rounded-xl flex flex-col justify-between">
-                  <span className="text-[10px] font-bold text-[#657977] uppercase tracking-wider">Water Intake</span>
-                  <div className="pt-2">
-                    <span className="text-2xl font-extrabold text-[#173B3A]">{generatedPlan.water}</span>
-                    <span className="text-xs text-[#657977] block">Liters</span>
-                  </div>
-                </div>
-
-                <div className="bg-[#F7FCFA] border border-[#E8F4F1] p-4 rounded-xl flex flex-col justify-between">
-                  <span className="text-[10px] font-bold text-[#657977] uppercase tracking-wider">Sodium Limit</span>
-                  <div className="pt-2">
-                    <span className="text-2xl font-extrabold text-[#173B3A]">{generatedPlan.sodium}</span>
-                    <span className="text-xs text-[#657977] block">mg</span>
-                  </div>
-                </div>
-
-                <div className="bg-[#F7FCFA] border border-[#E8F4F1] p-4 rounded-xl flex flex-col justify-between">
-                  <span className="text-[10px] font-bold text-[#657977] uppercase tracking-wider">Sugar Ceiling</span>
-                  <div className="pt-2">
-                    <span className="text-2xl font-extrabold text-[#173B3A]">{generatedPlan.sugar}</span>
-                    <span className="text-xs text-[#657977] block">g</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* SECTION 7: RULE TRANSPARENCY TRAIL */}
-            <div className="bg-white rounded-2xl border border-[#DCE9E6] shadow-sm p-5 md:p-6 space-y-4">
-              <div className="flex items-center justify-between border-b border-[#EEF5F3] pb-3">
-                <h3 className="text-base font-bold text-[#173B3A] flex items-center gap-2">
-                  <BookOpen className="text-[#007F73]" size={18} /> Rule Transparency Trail
-                </h3>
-              </div>
-
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs border-collapse">
-                  <thead>
-                    <tr className="border-b border-[#DCE9E6] text-[#657977] font-bold">
-                      <th className="py-2.5 px-2">Clinical Rule ID</th>
-                      <th className="py-2.5 px-2">Organization</th>
-                      <th className="py-2.5 px-2">Guideline & Topic</th>
-                      <th className="py-2.5 px-2">Evidence Level</th>
-                      <th className="py-2.5 px-2">Publication & URL</th>
-                    </tr>
-                  </thead>
-                  <tbody>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {generatedPlan.rules_matched.map((rule, idx) => (
-                      <tr key={idx} className="border-b border-[#F0F9F7] hover:bg-[#F7FCFA] transition-colors">
-                        <td className="py-3 px-2 font-mono font-bold text-[#007F73]">{rule.rule_id}</td>
-                        <td className="py-3 px-2">
-                          <span className="bg-[#EAF7F4] text-[#007F73] font-bold px-2 py-0.5 rounded-md border border-[#BCE6DC] text-[10px]">
+                      <div key={idx} className="p-3.5 bg-[#F7FCFA] border border-[#E8F4F1] rounded-xl flex flex-col justify-between space-y-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="bg-[#E8F6F3] text-[#007F73] font-extrabold text-[10px] px-2.5 py-0.5 rounded-md border border-[#C5EBE3]">
                             {rule.organization}
                           </span>
-                        </td>
-                        <td className="py-3 px-2 font-semibold text-[#173B3A]">
-                          {rule.guideline_name}
-                          <span className="block text-[10px] text-[#657977] font-normal mt-0.5">
-                            Topic: {rule.clinical_topic}
-                          </span>
-                        </td>
-                        <td className="py-3 px-2">
-                          <span className={`font-bold uppercase tracking-wider text-[10px] ${
+                          <span className={`font-bold uppercase tracking-wider text-[9px] ${
                             rule.evidence_strength === "HIGH" ? "text-[#16A085]" :
                             rule.evidence_strength === "MODERATE" ? "text-amber-600" : "text-slate-500"
                           }`}>
-                            {rule.evidence_strength}
+                            Evidence: {formatEvidenceLevel(rule.evidence_strength)}
                           </span>
-                        </td>
-                        <td className="py-3 px-2 text-[11px] text-[#657977]">
-                          {rule.publication_year} | 
-                          <a href={rule.url} target="_blank" rel="noopener noreferrer" className="text-[#007F73] hover:underline inline-flex items-center gap-0.5 ml-1 font-bold">
-                            Source <ChevronRight size={10} />
-                          </a>
-                        </td>
-                      </tr>
+                        </div>
+                        
+                        <p className="text-xs font-bold text-[#173B3A] leading-snug">{rule.recommendation}</p>
+                        
+                        <div className="flex items-center gap-2 text-[10px] text-[#657977] pt-1">
+                          <span>Topic: <strong>{rule.clinical_topic}</strong></span>
+                        </div>
+                      </div>
                     ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* SECTION 8: AI EXPLANATION */}
-            {(!geminiOffline || geminiLoading) && (
-              <div className="bg-[#132A29] text-white rounded-2xl p-6 shadow-md space-y-4">
-                <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-                  <span className="text-[10px] bg-[#1A3837] text-emerald-400 font-bold uppercase tracking-wider px-3 py-1 rounded-full border border-[#234A49]">
-                    AI Clinical Justification
-                  </span>
+                  </div>
                 </div>
 
-                {geminiLoading ? (
-                  <div className="py-6 flex flex-col justify-center items-center gap-2 text-slate-300 text-xs">
-                    <RefreshCw className="animate-spin text-emerald-400" size={20} />
-                    <span>Gemini is generating natural language justifications...</span>
+                {/* SECTION 3: DAILY MEAL PLAN */}
+                <div className="bg-white rounded-2xl border border-[#DCE9E6] shadow-sm p-5 md:p-6 space-y-4">
+                  <div className="flex items-center justify-between border-b border-[#EEF5F3] pb-3">
+                    <h3 className="text-base font-bold text-[#173B3A] flex items-center gap-2">
+                      <Salad className="text-[#007F73]" size={18} /> Daily Meal Plan
+                    </h3>
                   </div>
-                ) : (
-                  geminiExplanation && (
-                    <div className="space-y-4">
-                      <p className="text-xs leading-relaxed text-slate-200 font-medium italic">
-                        "{geminiExplanation.explanation}"
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                    <div className="bg-[#F7FCFA] border border-[#E1EFEA] p-4 rounded-xl space-y-1.5">
+                      <span className="text-[10px] font-bold text-[#007F73] uppercase tracking-wider bg-[#EAF7F4] px-2 py-0.5 rounded-md inline-block">
+                        Breakfast
+                      </span>
+                      <p className="text-xs font-semibold text-[#173B3A] leading-relaxed">{generatedPlan.meals.breakfast}</p>
+                    </div>
+
+                    <div className="bg-[#F7FCFA] border border-[#E1EFEA] p-4 rounded-xl space-y-1.5">
+                      <span className="text-[10px] font-bold text-teal-700 uppercase tracking-wider bg-teal-50 px-2 py-0.5 rounded-md inline-block">
+                        Snacks (AM)
+                      </span>
+                      <p className="text-xs font-semibold text-[#173B3A] leading-relaxed">{generatedPlan.meals.morning_snack}</p>
+                    </div>
+
+                    <div className="bg-[#F7FCFA] border border-[#E1EFEA] p-4 rounded-xl space-y-1.5">
+                      <span className="text-[10px] font-bold text-[#007F73] uppercase tracking-wider bg-[#EAF7F4] px-2 py-0.5 rounded-md inline-block">
+                        Lunch
+                      </span>
+                      <p className="text-xs font-semibold text-[#173B3A] leading-relaxed">{generatedPlan.meals.lunch}</p>
+                    </div>
+
+                    <div className="bg-[#F7FCFA] border border-[#E1EFEA] p-4 rounded-xl space-y-1.5">
+                      <span className="text-[10px] font-bold text-teal-700 uppercase tracking-wider bg-teal-50 px-2 py-0.5 rounded-md inline-block">
+                        Snacks (PM)
+                      </span>
+                      <p className="text-xs font-semibold text-[#173B3A] leading-relaxed">{generatedPlan.meals.evening_snack}</p>
+                    </div>
+
+                    <div className="bg-[#F7FCFA] border border-[#E1EFEA] p-4 rounded-xl space-y-1.5">
+                      <span className="text-[10px] font-bold text-[#007F73] uppercase tracking-wider bg-[#EAF7F4] px-2 py-0.5 rounded-md inline-block">
+                        Dinner
+                      </span>
+                      <p className="text-xs font-semibold text-[#173B3A] leading-relaxed">{generatedPlan.meals.dinner}</p>
+                    </div>
+
+                    <div className="bg-[#EBF8F5] border border-[#BCE6DC] p-4 rounded-xl space-y-1.5">
+                      <span className="text-[10px] font-bold text-[#007F73] uppercase tracking-wider bg-white px-2 py-0.5 rounded-md inline-block border border-[#BCE6DC]">
+                        Hydration Target
+                      </span>
+                      <p className="text-xs font-semibold text-[#173B3A] leading-relaxed">
+                        Consume at least <strong>{generatedPlan.water} Liters</strong> of clean water daily to maintain cellular hydration (ACSM Guideline).
                       </p>
-                      
-                      <div className="space-y-2 pt-2">
-                        <span className="text-[10px] font-bold uppercase text-emerald-400 tracking-wider block">Personalized Clinical Insights:</span>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                          {geminiExplanation.personalized_tips.map((tip, idx) => (
-                            <div key={idx} className="bg-[#1D3D3C] p-3 rounded-xl border border-[#275250] text-xs text-slate-200 leading-relaxed">
-                              {tip}
+                    </div>
+                  </div>
+                </div>
+
+                {/* SECTIONS 4 & 5: FOODS TO PREFER / LIMIT */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  
+                  {/* FOODS TO PREFER */}
+                  <div className="bg-white rounded-2xl border border-[#DCE9E6] shadow-sm p-5 space-y-3">
+                    <h3 className="text-base font-bold text-[#173B3A] flex items-center gap-2 border-b border-[#EEF5F3] pb-3">
+                      <Check className="text-[#16A085]" size={18} /> Foods to Prefer
+                    </h3>
+                    <div className="flex flex-wrap gap-1.5">
+                      {generatedPlan.foods_to_prefer.map((food, idx) => (
+                        <span key={idx} className="bg-[#E8F8F5] text-[#007F73] border border-[#C5EBE3] text-xs font-bold px-3 py-1.5 rounded-xl">
+                          {food}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* FOODS TO LIMIT / AVOID */}
+                  <div className="bg-white rounded-2xl border border-[#DCE9E6] shadow-sm p-5 space-y-3">
+                    <h3 className="text-base font-bold text-[#173B3A] flex items-center gap-2 border-b border-[#EEF5F3] pb-3">
+                      <Ban className="text-rose-500" size={18} /> Foods to Limit / Avoid
+                    </h3>
+                    <div className="flex flex-wrap gap-1.5">
+                      {generatedPlan.foods_to_limit.map((food, idx) => (
+                        <span key={idx} className="bg-rose-50 text-rose-700 border border-rose-100 text-xs font-bold px-3 py-1.5 rounded-xl">
+                          {food}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                </div>
+
+                {/* SECTION 6: PERSONALIZED NUTRITION TARGETS */}
+                <div className="bg-white rounded-2xl border border-[#DCE9E6] shadow-sm p-5 md:p-6 space-y-4">
+                  <div className="flex items-center justify-between border-b border-[#EEF5F3] pb-3">
+                    <h3 className="text-base font-bold text-[#173B3A] flex items-center gap-2">
+                      <TrendingUp className="text-[#007F73]" size={18} /> Personalized Nutrition Targets
+                    </h3>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div className="bg-[#007F73] text-white p-4 rounded-xl flex flex-col justify-between">
+                      <span className="text-[10px] font-bold uppercase tracking-wider opacity-90">Energy Intake</span>
+                      <div className="pt-2">
+                        <span className="text-2xl font-extrabold">{generatedPlan.calories}</span>
+                        <span className="text-xs opacity-80 block">kcal</span>
+                      </div>
+                    </div>
+
+                    <div className="bg-[#F7FCFA] border border-[#E8F4F1] p-4 rounded-xl flex flex-col justify-between">
+                      <span className="text-[10px] font-bold text-[#657977] uppercase tracking-wider">Protein Target</span>
+                      <div className="pt-2">
+                        <span className="text-2xl font-extrabold text-[#173B3A]">{generatedPlan.protein}</span>
+                        <span className="text-xs text-[#657977] block">g</span>
+                      </div>
+                    </div>
+
+                    <div className="bg-[#F7FCFA] border border-[#E8F4F1] p-4 rounded-xl flex flex-col justify-between">
+                      <span className="text-[10px] font-bold text-[#657977] uppercase tracking-wider">Carbohydrates</span>
+                      <div className="pt-2">
+                        <span className="text-2xl font-extrabold text-[#173B3A]">{generatedPlan.carbohydrates}</span>
+                        <span className="text-xs text-[#657977] block">g</span>
+                      </div>
+                    </div>
+
+                    <div className="bg-[#F7FCFA] border border-[#E8F4F1] p-4 rounded-xl flex flex-col justify-between">
+                      <span className="text-[10px] font-bold text-[#657977] uppercase tracking-wider">Dietary Fats</span>
+                      <div className="pt-2">
+                        <span className="text-2xl font-extrabold text-[#173B3A]">{generatedPlan.fat}</span>
+                        <span className="text-xs text-[#657977] block">g</span>
+                      </div>
+                    </div>
+
+                    <div className="bg-[#F7FCFA] border border-[#E8F4F1] p-4 rounded-xl flex flex-col justify-between">
+                      <span className="text-[10px] font-bold text-[#657977] uppercase tracking-wider">Dietary Fiber</span>
+                      <div className="pt-2">
+                        <span className="text-2xl font-extrabold text-[#173B3A]">{generatedPlan.fiber}</span>
+                        <span className="text-xs text-[#657977] block">g</span>
+                      </div>
+                    </div>
+
+                    <div className="bg-[#F7FCFA] border border-[#E8F4F1] p-4 rounded-xl flex flex-col justify-between">
+                      <span className="text-[10px] font-bold text-[#657977] uppercase tracking-wider">Water Intake</span>
+                      <div className="pt-2">
+                        <span className="text-2xl font-extrabold text-[#173B3A]">{generatedPlan.water}</span>
+                        <span className="text-xs text-[#657977] block">Liters</span>
+                      </div>
+                    </div>
+
+                    <div className="bg-[#F7FCFA] border border-[#E8F4F1] p-4 rounded-xl flex flex-col justify-between">
+                      <span className="text-[10px] font-bold text-[#657977] uppercase tracking-wider">Sodium Limit</span>
+                      <div className="pt-2">
+                        <span className="text-2xl font-extrabold text-[#173B3A]">{generatedPlan.sodium}</span>
+                        <span className="text-xs text-[#657977] block">mg</span>
+                      </div>
+                    </div>
+
+                    <div className="bg-[#F7FCFA] border border-[#E8F4F1] p-4 rounded-xl flex flex-col justify-between">
+                      <span className="text-[10px] font-bold text-[#657977] uppercase tracking-wider">Sugar Ceiling</span>
+                      <div className="pt-2">
+                        <span className="text-2xl font-extrabold text-[#173B3A]">{generatedPlan.sugar}</span>
+                        <span className="text-xs text-[#657977] block">g</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* SECTION 7: RULE TRANSPARENCY TRAIL */}
+                <div className="bg-white rounded-2xl border border-[#DCE9E6] shadow-sm p-5 md:p-6 space-y-4">
+                  <div className="flex items-center justify-between border-b border-[#EEF5F3] pb-3">
+                    <h3 className="text-base font-bold text-[#173B3A] flex items-center gap-2">
+                      <BookOpen className="text-[#007F73]" size={18} /> Rule Transparency Trail
+                    </h3>
+                  </div>
+
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs border-collapse">
+                      <thead>
+                        <tr className="border-b border-[#DCE9E6] text-[#657977] font-bold">
+                          <th className="py-2.5 px-2">Clinical Rule ID</th>
+                          <th className="py-2.5 px-2">Organization</th>
+                          <th className="py-2.5 px-2">Guideline & Topic</th>
+                          <th className="py-2.5 px-2">Evidence Level</th>
+                          <th className="py-2.5 px-2">Publication & URL</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {generatedPlan.rules_matched.map((rule, idx) => (
+                          <tr key={idx} className="border-b border-[#F0F9F7] hover:bg-[#F7FCFA] transition-colors">
+                            <td className="py-3 px-2 font-mono font-bold text-[#007F73]">{rule.rule_id}</td>
+                            <td className="py-3 px-2">
+                              <span className="bg-[#EAF7F4] text-[#007F73] font-bold px-2 py-0.5 rounded-md border border-[#BCE6DC] text-[10px]">
+                                {rule.organization}
+                              </span>
+                            </td>
+                            <td className="py-3 px-2 font-semibold text-[#173B3A]">
+                              {rule.guideline_name}
+                              <span className="block text-[10px] text-[#657977] font-normal mt-0.5">
+                                Topic: {rule.clinical_topic}
+                              </span>
+                            </td>
+                            <td className="py-3 px-2">
+                              <span className={`font-bold uppercase tracking-wider text-[10px] ${
+                                rule.evidence_strength === "HIGH" ? "text-[#16A085]" :
+                                rule.evidence_strength === "MODERATE" ? "text-amber-600" : "text-slate-500"
+                              }`}>
+                                {rule.evidence_strength}
+                              </span>
+                            </td>
+                            <td className="py-3 px-2 text-[11px] text-[#657977]">
+                              {rule.publication_year} | 
+                              <a href={rule.url} target="_blank" rel="noopener noreferrer" className="text-[#007F73] hover:underline inline-flex items-center gap-0.5 ml-1 font-bold">
+                                Source <ChevronRight size={10} />
+                              </a>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* SECTION 8: AI EXPLANATION */}
+                {(!geminiOffline || geminiLoading) && (
+                  <div className="bg-[#132A29] text-white rounded-2xl p-6 shadow-md space-y-4">
+                    <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+                      <span className="text-[10px] bg-[#1A3837] text-emerald-400 font-bold uppercase tracking-wider px-3 py-1 rounded-full border border-[#234A49]">
+                        AI Clinical Justification
+                      </span>
+                    </div>
+
+                    {geminiLoading ? (
+                      <div className="py-6 flex flex-col justify-center items-center gap-2 text-slate-300 text-xs">
+                        <RefreshCw className="animate-spin text-emerald-400" size={20} />
+                        <span>Gemini is generating natural language justifications...</span>
+                      </div>
+                    ) : (
+                      geminiExplanation && (
+                        <div className="space-y-4">
+                          <p className="text-xs leading-relaxed text-slate-200 font-medium italic">
+                            "{geminiExplanation.explanation}"
+                          </p>
+                          
+                          <div className="space-y-2 pt-2">
+                            <span className="text-[10px] font-bold uppercase text-emerald-400 tracking-wider block">Personalized Clinical Insights:</span>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                              {geminiExplanation.personalized_tips.map((tip, idx) => (
+                                <div key={idx} className="bg-[#1D3D3C] p-3 rounded-xl border border-[#275250] text-xs text-slate-200 leading-relaxed">
+                                  {tip}
+                                </div>
+                              ))}
                             </div>
+                          </div>
+                        </div>
+                      )
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ═════════════════════════════════════════════════════════════ */}
+            {/* OPTION 2: DYNAMIC AI-GENERATED PRECISION DIET PLAN         */}
+            {/* ═════════════════════════════════════════════════════════════ */}
+            {selectedPlanMode === "ai_custom" && (
+              <div className="space-y-6 animate-in fade-in duration-300">
+                {aiPlanLoading ? (
+                  <div className="bg-white rounded-2xl border border-[#DCE9E6] p-12 text-center space-y-3 shadow-sm">
+                    <RefreshCw size={28} className="animate-spin text-[#007F73] mx-auto" />
+                    <h3 className="font-extrabold text-[#173B3A] text-lg">AI Precision Nutrition Synthesizer Active</h3>
+                    <p className="text-xs text-[#657977] max-w-md mx-auto">
+                      Analyzing your live vitals (BP {vitals.systolic_bp}/{vitals.diastolic_bp}, HR {vitals.heart_rate}), health conditions, and allergies to engineer your custom dynamic diet plan...
+                    </p>
+                  </div>
+                ) : aiGeneratedPlan ? (
+                  <div className="space-y-6">
+                    {/* AI SUMMARY BANNER */}
+                    <div className="bg-gradient-to-r from-[#173B3A] via-[#1A4543] to-[#005A51] text-white p-6 rounded-2xl space-y-3 shadow-md border border-[#234A49]">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 text-[10px] font-extrabold uppercase tracking-widest">
+                          <Sparkles size={12} />
+                          <span>Option 2 • AI Dynamic Nutrition Plan</span>
+                        </div>
+                        <span className="text-[11px] font-bold text-emerald-300">
+                          Tailored for: {userInputs.preference} • {userInputs.goal}
+                        </span>
+                      </div>
+                      <h3 className="text-xl sm:text-2xl font-extrabold tracking-tight">{aiGeneratedPlan.title}</h3>
+                      <p className="text-xs sm:text-sm text-slate-200 font-medium leading-relaxed bg-white/5 p-4 rounded-xl border border-white/10">
+                        "{aiGeneratedPlan.clinical_summary}"
+                      </p>
+                    </div>
+
+                    {/* SECTION 1: AI DAILY MEAL BREAKDOWN */}
+                    <div className="bg-white rounded-2xl border border-[#DCE9E6] shadow-sm p-5 md:p-6 space-y-4">
+                      <div className="flex items-center justify-between border-b border-[#EEF5F3] pb-3">
+                        <h3 className="text-base font-bold text-[#173B3A] flex items-center gap-2">
+                          <Salad className="text-[#007F73]" size={18} /> AI-Generated 5-Slot Meal Routine
+                        </h3>
+                        <span className="text-[11px] font-bold text-[#007F73] bg-[#EAF7F4] px-2.5 py-0.5 rounded-full border border-[#BCE6DC]">
+                          Personalized
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                        <div className="bg-[#F7FCFA] border border-[#E1EFEA] p-4 rounded-xl space-y-1.5 hover:border-[#007F73]/30 transition-all">
+                          <span className="text-[10px] font-bold text-[#007F73] uppercase tracking-wider bg-[#EAF7F4] px-2 py-0.5 rounded-md inline-block">
+                            Breakfast
+                          </span>
+                          <p className="text-xs font-semibold text-[#173B3A] leading-relaxed">{aiGeneratedPlan.meals.breakfast}</p>
+                        </div>
+
+                        <div className="bg-[#F7FCFA] border border-[#E1EFEA] p-4 rounded-xl space-y-1.5 hover:border-[#007F73]/30 transition-all">
+                          <span className="text-[10px] font-bold text-teal-700 uppercase tracking-wider bg-teal-50 px-2 py-0.5 rounded-md inline-block">
+                            Morning Snack
+                          </span>
+                          <p className="text-xs font-semibold text-[#173B3A] leading-relaxed">{aiGeneratedPlan.meals.morning_snack}</p>
+                        </div>
+
+                        <div className="bg-[#F7FCFA] border border-[#E1EFEA] p-4 rounded-xl space-y-1.5 hover:border-[#007F73]/30 transition-all">
+                          <span className="text-[10px] font-bold text-[#007F73] uppercase tracking-wider bg-[#EAF7F4] px-2 py-0.5 rounded-md inline-block">
+                            Lunch
+                          </span>
+                          <p className="text-xs font-semibold text-[#173B3A] leading-relaxed">{aiGeneratedPlan.meals.lunch}</p>
+                        </div>
+
+                        <div className="bg-[#F7FCFA] border border-[#E1EFEA] p-4 rounded-xl space-y-1.5 hover:border-[#007F73]/30 transition-all">
+                          <span className="text-[10px] font-bold text-teal-700 uppercase tracking-wider bg-teal-50 px-2 py-0.5 rounded-md inline-block">
+                            Evening Snack
+                          </span>
+                          <p className="text-xs font-semibold text-[#173B3A] leading-relaxed">{aiGeneratedPlan.meals.evening_snack}</p>
+                        </div>
+
+                        <div className="bg-[#F7FCFA] border border-[#E1EFEA] p-4 rounded-xl space-y-1.5 hover:border-[#007F73]/30 transition-all">
+                          <span className="text-[10px] font-bold text-[#007F73] uppercase tracking-wider bg-[#EAF7F4] px-2 py-0.5 rounded-md inline-block">
+                            Dinner
+                          </span>
+                          <p className="text-xs font-semibold text-[#173B3A] leading-relaxed">{aiGeneratedPlan.meals.dinner}</p>
+                        </div>
+
+                        <div className="bg-[#EBF8F5] border border-[#BCE6DC] p-4 rounded-xl space-y-1.5">
+                          <span className="text-[10px] font-bold text-[#007F73] uppercase tracking-wider bg-white px-2 py-0.5 rounded-md inline-block border border-[#BCE6DC]">
+                            Hydration Strategy
+                          </span>
+                          <p className="text-xs font-semibold text-[#173B3A] leading-relaxed">
+                            Maintain steady intake of <strong>{aiGeneratedPlan.water} Liters</strong> daily. Adjust with electrolytes if exercising.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* SECTION 2: AI MACRONUTRIENT & MICRONUTRIENT TARGETS */}
+                    <div className="bg-white rounded-2xl border border-[#DCE9E6] shadow-sm p-5 md:p-6 space-y-4">
+                      <div className="flex items-center justify-between border-b border-[#EEF5F3] pb-3">
+                        <h3 className="text-base font-bold text-[#173B3A] flex items-center gap-2">
+                          <TrendingUp className="text-[#007F73]" size={18} /> AI Dynamic Nutrition Targets
+                        </h3>
+                      </div>
+
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                        <div className="bg-[#173B3A] text-white p-4 rounded-xl flex flex-col justify-between shadow-sm">
+                          <span className="text-[10px] font-bold uppercase tracking-wider opacity-90">Calculated Calories</span>
+                          <div className="pt-2">
+                            <span className="text-2xl font-extrabold">{aiGeneratedPlan.calories}</span>
+                            <span className="text-xs opacity-80 block">kcal/day</span>
+                          </div>
+                        </div>
+
+                        <div className="bg-[#F7FCFA] border border-[#E8F4F1] p-4 rounded-xl flex flex-col justify-between">
+                          <span className="text-[10px] font-bold text-[#657977] uppercase tracking-wider">Protein Target</span>
+                          <div className="pt-2">
+                            <span className="text-2xl font-extrabold text-[#173B3A]">{aiGeneratedPlan.protein}</span>
+                            <span className="text-xs text-[#657977] block">g</span>
+                          </div>
+                        </div>
+
+                        <div className="bg-[#F7FCFA] border border-[#E8F4F1] p-4 rounded-xl flex flex-col justify-between">
+                          <span className="text-[10px] font-bold text-[#657977] uppercase tracking-wider">Carbohydrates</span>
+                          <div className="pt-2">
+                            <span className="text-2xl font-extrabold text-[#173B3A]">{aiGeneratedPlan.carbohydrates}</span>
+                            <span className="text-xs text-[#657977] block">g</span>
+                          </div>
+                        </div>
+
+                        <div className="bg-[#F7FCFA] border border-[#E8F4F1] p-4 rounded-xl flex flex-col justify-between">
+                          <span className="text-[10px] font-bold text-[#657977] uppercase tracking-wider">Dietary Fats</span>
+                          <div className="pt-2">
+                            <span className="text-2xl font-extrabold text-[#173B3A]">{aiGeneratedPlan.fat}</span>
+                            <span className="text-xs text-[#657977] block">g</span>
+                          </div>
+                        </div>
+
+                        <div className="bg-[#F7FCFA] border border-[#E8F4F1] p-4 rounded-xl flex flex-col justify-between">
+                          <span className="text-[10px] font-bold text-[#657977] uppercase tracking-wider">Dietary Fiber</span>
+                          <div className="pt-2">
+                            <span className="text-2xl font-extrabold text-[#173B3A]">{aiGeneratedPlan.fiber}</span>
+                            <span className="text-xs text-[#657977] block">g</span>
+                          </div>
+                        </div>
+
+                        <div className="bg-[#F7FCFA] border border-[#E8F4F1] p-4 rounded-xl flex flex-col justify-between">
+                          <span className="text-[10px] font-bold text-[#657977] uppercase tracking-wider">Hydration Target</span>
+                          <div className="pt-2">
+                            <span className="text-2xl font-extrabold text-[#173B3A]">{aiGeneratedPlan.water}</span>
+                            <span className="text-xs text-[#657977] block">Liters</span>
+                          </div>
+                        </div>
+
+                        <div className="bg-[#F7FCFA] border border-[#E8F4F1] p-4 rounded-xl flex flex-col justify-between">
+                          <span className="text-[10px] font-bold text-[#657977] uppercase tracking-wider">Sodium Ceiling</span>
+                          <div className="pt-2">
+                            <span className="text-2xl font-extrabold text-[#173B3A]">{aiGeneratedPlan.sodium}</span>
+                            <span className="text-xs text-[#657977] block">mg</span>
+                          </div>
+                        </div>
+
+                        <div className="bg-[#F7FCFA] border border-[#E8F4F1] p-4 rounded-xl flex flex-col justify-between">
+                          <span className="text-[10px] font-bold text-[#657977] uppercase tracking-wider">Sugar Limit</span>
+                          <div className="pt-2">
+                            <span className="text-2xl font-extrabold text-[#173B3A]">{aiGeneratedPlan.sugar}</span>
+                            <span className="text-xs text-[#657977] block">g</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* SECTION 3: FOODS TO PREFER / LIMIT */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="bg-white rounded-2xl border border-[#DCE9E6] shadow-sm p-5 space-y-3">
+                        <h3 className="text-base font-bold text-[#173B3A] flex items-center gap-2 border-b border-[#EEF5F3] pb-3">
+                          <Check className="text-[#16A085]" size={18} /> Foods to Prioritize (AI Selected)
+                        </h3>
+                        <div className="flex flex-wrap gap-1.5">
+                          {aiGeneratedPlan.foods_to_prefer.map((food, idx) => (
+                            <span key={idx} className="bg-[#E8F8F5] text-[#007F73] border border-[#C5EBE3] text-xs font-bold px-3 py-1.5 rounded-xl">
+                              {food}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="bg-white rounded-2xl border border-[#DCE9E6] shadow-sm p-5 space-y-3">
+                        <h3 className="text-base font-bold text-[#173B3A] flex items-center gap-2 border-b border-[#EEF5F3] pb-3">
+                          <Ban className="text-rose-500" size={18} /> Foods to Avoid / Restrict
+                        </h3>
+                        <div className="flex flex-wrap gap-1.5">
+                          {aiGeneratedPlan.foods_to_limit.map((food, idx) => (
+                            <span key={idx} className="bg-rose-50 text-rose-700 border border-rose-100 text-xs font-bold px-3 py-1.5 rounded-xl">
+                              {food}
+                            </span>
                           ))}
                         </div>
                       </div>
                     </div>
-                  )
+
+                    {/* SECTION 4: AI CLINICAL INSIGHTS & TIPS */}
+                    <div className="bg-[#132A29] text-white rounded-2xl p-6 shadow-md space-y-4">
+                      <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+                        <span className="text-[10px] bg-[#1A3837] text-emerald-400 font-bold uppercase tracking-wider px-3 py-1 rounded-full border border-[#234A49] flex items-center gap-1.5">
+                          <Sparkles size={12} /> AI Dynamic Health Insights & Action Plan
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <span className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider block">Metabolic & Biometric Insights</span>
+                          <div className="space-y-2">
+                            {aiGeneratedPlan.ai_insights.map((insight, idx) => (
+                              <div key={idx} className="bg-[#1D3D3C] p-3 rounded-xl border border-[#275250] text-xs text-slate-200 leading-relaxed">
+                                {insight}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <span className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider block">Personalized Lifestyle & Adherence Tips</span>
+                          <div className="space-y-2">
+                            {aiGeneratedPlan.personalized_tips.map((tip, idx) => (
+                              <div key={idx} className="bg-[#1D3D3C] p-3 rounded-xl border border-[#275250] text-xs text-slate-200 leading-relaxed">
+                                {tip}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                  </div>
+                ) : (
+                  <div className="bg-white rounded-2xl border border-[#DCE9E6] p-10 text-center text-[#657977] text-xs">
+                    Please submit the CDSS parameters above to generate your AI precision diet plan.
+                  </div>
                 )}
               </div>
             )}
@@ -806,3 +1106,4 @@ export default function DietPlanner() {
     </div>
   );
 }
+

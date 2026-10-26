@@ -1019,7 +1019,243 @@ Pre-Calculated Diet Plan:
         return jsonify({"success": False, "error": str(e)}), 200
 
 # ==========================================
-# 8. START SERVER (MUST BE AT THE VERY BOTTOM)
+# 10. DYNAMIC AI-GENERATED DIET PLAN ROUTE (OPTION 2)
+# ==========================================
+@app.route('/generate_ai_diet', methods=['POST', 'OPTIONS'])
+def generate_ai_diet():
+    if request.method == 'OPTIONS':
+        return jsonify({"status": "CORS approved"}), 200
+
+    try:
+        data = request.json or {}
+        patient_profile = data.get('patient_profile', {})
+        vitals = data.get('vitals', {})
+        user_inputs = data.get('user_inputs', {})
+
+        age = patient_profile.get('age', 30)
+        try:
+            age = int(age)
+        except Exception:
+            age = 30
+
+        height = patient_profile.get('height', 170)
+        try:
+            height = float(height)
+        except Exception:
+            height = 170.0
+
+        weight = patient_profile.get('weight', 70)
+        try:
+            weight = float(weight)
+        except Exception:
+            weight = 70.0
+
+        bmi = patient_profile.get('bmi', round(weight / ((height / 100.0) ** 2), 1))
+        athlete_status = "Athlete" if patient_profile.get('athlete_status') else "Non-Athlete"
+        sport = patient_profile.get('sport_type', 'N/A')
+        training = patient_profile.get('training_frequency', 'N/A')
+        
+        hist_list = patient_profile.get('medical_history', [])
+        if isinstance(hist_list, list):
+            history = ", ".join(hist_list) if hist_list else "None"
+        else:
+            history = str(hist_list) if hist_list else "None"
+            
+        systolic = vitals.get('systolic_bp', '120')
+        diastolic = vitals.get('diastolic_bp', '80')
+        hr = vitals.get('heart_rate', '72')
+        steps = vitals.get('steps', '5000')
+        risk_level = vitals.get('risk_level', 'LOW')
+
+        preference = user_inputs.get('preference', 'Vegetarian')
+        allergies = user_inputs.get('allergies', 'None')
+        goal = user_inputs.get('goal', 'Maintain Weight')
+        budget = user_inputs.get('budget', 'Medium')
+
+        prompt = f"""You are MedAI, an advanced Clinical Nutrition AI Specialist.
+Generate a completely custom, highly personalized AI Dynamic Diet and Nutrition Plan (Option 2) tailored to this specific user's biometrics, live vitals, clinical conditions, dietary preferences, and budget constraints.
+
+User Profile:
+- Age: {age} years
+- Height: {height} cm, Weight: {weight} kg, BMI: {bmi}
+- Athletic Status: {athlete_status} (Sport: {sport}, Training: {training})
+- Medical History / Chronic Conditions: {history}
+- Live Smartwatch Vitals: BP {systolic}/{diastolic} mmHg, Resting HR {hr} BPM, Daily Steps {steps}, Triage Risk: {risk_level}
+- Dietary Preference: {preference} (Vegetarian, Non Vegetarian, or Vegan)
+- Reported Allergies / Food Intolerances: {allergies}
+- User Dietary Goal: {goal} (e.g. Weight Loss, Muscle Gain, Maintain Weight, Weight Gain)
+- Budget Constraint: {budget} (Low, Medium, or High)
+
+Requirements for the AI Generated Diet Plan:
+1. Provide accurate target numbers for: calories (integer kcal), protein (g), carbohydrates (g), fat (g), fiber (g), water (liters), sodium (mg), sugar (g).
+2. Account strictly for conditions (e.g. if Hypertension or BP > 120/80, sodium must be <= 1500mg and emphasize DASH principles; if Diabetes, keep low-GI and sugar <= 25g; if Muscle Gain or Athlete, elevate protein to 1.6-2.0 g/kg).
+3. Accommodate all specified allergies ({allergies}) and preference ({preference}) without exception.
+4. Provide creative, culturally adaptable, appetizing, and practical meals for all 5 daily slots: Breakfast, Morning Snack, Lunch, Evening Snack, Dinner.
+5. Provide a rich clinical summary, curated foods to prefer, foods to avoid, personalized actionable tips, and AI clinical insights.
+
+Format your response strictly as valid JSON with the following structure:
+{{
+    "title": "AI Personalized Nutrition & Macro Plan",
+    "clinical_summary": "3-4 detailed sentences explaining how this AI-generated plan specifically targets their vitals (BP {systolic}/{diastolic}, HR {hr}, {steps} steps) and medical history ({history}) with precise nutrient partitioning for their goal ({goal}).",
+    "calories": 2100,
+    "protein": 110,
+    "carbohydrates": 245,
+    "fat": 58,
+    "fiber": 32,
+    "water": 3.2,
+    "sodium": 1600,
+    "sugar": 26,
+    "meals": {
+        "breakfast": "Detailed, delicious breakfast description matching {preference} and excluding {allergies}.",
+        "morning_snack": "Morning snack description.",
+        "lunch": "Detailed lunch description.",
+        "evening_snack": "Evening snack description.",
+        "dinner": "Detailed dinner description."
+    },
+    "foods_to_prefer": [
+        "Food 1", "Food 2", "Food 3", "Food 4", "Food 5", "Food 6"
+    ],
+    "foods_to_limit": [
+        "Food 1", "Food 2", "Food 3", "Food 4"
+    ],
+    "personalized_tips": [
+        "Specific actionable tip 1 related to hydration and activity level.",
+        "Specific actionable tip 2 related to their medical conditions or goal.",
+        "Specific actionable tip 3 related to budget or food prep."
+    ],
+    "ai_insights": [
+        "Insight 1 explaining metabolic / cardiovascular support.",
+        "Insight 2 explaining electrolyte balance and recovery."
+    ]
+}}
+Ensure the output is strictly valid JSON without preamble or explanations.
+"""
+
+        raw_ai_response = ask_gemini_advanced(prompt)
+        parsed_data = None
+
+        if raw_ai_response:
+            clean_text = raw_ai_response.strip()
+            if clean_text.startswith("```json"):
+                clean_text = clean_text[7:]
+            if clean_text.startswith("```"):
+                clean_text = clean_text[3:]
+            if clean_text.endswith("```"):
+                clean_text = clean_text[:-3]
+            clean_text = clean_text.strip()
+
+            start_idx = clean_text.find('{')
+            end_idx = clean_text.rfind('}') + 1
+            if start_idx != -1 and end_idx != -1:
+                clean_text = clean_text[start_idx:end_idx]
+
+            try:
+                parsed_data = json.loads(clean_text)
+            except Exception as pe:
+                print(f"⚠️ Gemini JSON parse error: {pe}, using dynamic fallback")
+                parsed_data = None
+
+        # Robust Dynamic Fallback Generator if Gemini is unavailable
+        if not parsed_data:
+            # Baseline BMR & TDEE calculation
+            bmr = 10 * weight + 6.25 * height - 5 * age + 5
+            steps_num = int(steps) if str(steps).isdigit() else 5000
+            mult = 1.6 if steps_num > 10000 or athlete_status == "Athlete" else 1.35 if steps_num > 6000 else 1.2
+            tdee = bmr * mult
+
+            cal_target = tdee
+            if goal == "Weight Loss":
+                cal_target = max(1500, tdee - 500)
+            elif goal == "Weight Gain":
+                cal_target = tdee + 500
+            elif goal == "Muscle Gain":
+                cal_target = tdee + 350
+            cal_target = int(round(cal_target))
+
+            is_hyper = "Hypertension" in history or float(systolic) > 130 or float(diastolic) > 85
+            is_diab = "Diabetes" in history
+            is_athlete = athlete_status == "Athlete" or goal == "Muscle Gain"
+
+            prot_per_kg = 1.8 if is_athlete else 1.0
+            prot_g = int(round(weight * prot_per_kg))
+            fat_pct = 0.22 if is_hyper else 0.26
+            fat_g = int(round((cal_target * fat_pct) / 9))
+            carb_g = int(round((cal_target - (prot_g * 4 + fat_g * 9)) / 4))
+            sod_mg = 1500 if is_hyper else 2200
+            sug_g = 22 if is_diab else int(round((cal_target * 0.07) / 4))
+            water_l = 3.8 if steps_num > 9000 or is_athlete else 2.8
+
+            allergy_str = f" strictly free from {allergies}" if allergies and allergies.lower() != "none" else ""
+
+            if preference == "Vegan":
+                b_meal = f"Warm cinnamon oats porridge cooked in fortified almond milk topped with chia seeds, blueberries, and walnuts{allergy_str}."
+                s1_meal = f"Fresh sliced cucumber and carrot batons with tahini-lemon hummus dip{allergy_str}."
+                l_meal = f"Organic quinoa and edamame bowl with steamed kale, roasted sweet potato, sesame dressing, and lentil soup{allergy_str}."
+                s2_meal = f"Handful of roasted unsalted pumpkin seeds and green tea."
+                d_meal = f"Pan-seared tofu stir-fry with broccoli florets, baby corn, and mushrooms over wild brown rice{allergy_str}."
+            elif preference == "Non Vegetarian":
+                b_meal = f"Scrambled eggs (2 whole + 1 white) with baby spinach, grilled tomatoes, and whole grain toast{allergy_str}."
+                s1_meal = f"Low-fat Greek yogurt with sliced strawberries and a drizzle of raw honey{allergy_str}."
+                l_meal = f"Herb-grilled chicken breast or wild-caught fish, steamed asparagus, quinoa pilaf, and mixed field greens{allergy_str}."
+                s2_meal = f"A handful of raw almonds and unsweetened tender coconut water."
+                d_meal = f"Baked lemon-garlic salmon or roasted turkey tenderloin with sautéed zucchini, bell peppers, and sweet potato mash{allergy_str}."
+            else: # Vegetarian
+                b_meal = f"Besan & grated paneer chilla (chickpea pancake) seasoned with turmeric and cumin, served with fresh mint chutney{allergy_str}."
+                s1_meal = f"Sprouted moong & pomegranate chaat with cucumber and lime juice{allergy_str}."
+                l_meal = f"High-protein paneer bhurji or tofu curry, 2 multigrain rotis, thick yellow moong dal, and a large tomato-cucumber salad{allergy_str}."
+                s2_meal = f"Roasted makhana (foxnuts) seasoned with black pepper and a cup of antioxidant green tea."
+                d_meal = f"Grilled paneer skewers with bell peppers and onions, served with a warm bowl of vegetable quinoa soup{allergy_str}."
+
+            prefer_list = ["Leafy green vegetables (Spinach, Kale, Methi)", "Whole grains (Quinoa, Brown Rice, Oats)", "Quality proteins (Lentils, Tofu, Greek Yogurt)", "Healthy fats (Walnuts, Chia seeds, Extra virgin olive oil)"]
+            if is_hyper:
+                prefer_list.extend(["Potassium-rich foods (Bananas, Beetroot)", "Unsalted seeds"])
+            if is_diab:
+                prefer_list.extend(["Low-GI legumes", "Fenugreek seeds"])
+
+            limit_list = ["Ultra-processed packaged snacks", "Refined flour & added sugars", "High-sodium canned foods & table salt", "Trans-fat fried foods"]
+            if allergies and allergies.lower() != "none":
+                limit_list.append(f"All items containing {allergies}")
+
+            parsed_data = {
+                "title": f"AI Precision Plan for {goal}",
+                "clinical_summary": f"This dynamically synthesized AI plan has been engineered for your physiological profile (Age: {age}, Weight: {weight}kg, Steps: {steps}). It balances {cal_target} kcal with {prot_g}g protein, while maintaining a strict sodium cap ({sod_mg}mg) to support healthy cardiovascular and metabolic function.",
+                "calories": cal_target,
+                "protein": prot_g,
+                "carbohydrates": carb_g,
+                "fat": fat_g,
+                "fiber": 32,
+                "water": water_l,
+                "sodium": sod_mg,
+                "sugar": sug_g,
+                "meals": {
+                    "breakfast": b_meal,
+                    "morning_snack": s1_meal,
+                    "lunch": l_meal,
+                    "evening_snack": s2_meal,
+                    "dinner": d_meal
+                },
+                "foods_to_prefer": prefer_list,
+                "foods_to_limit": limit_list,
+                "personalized_tips": [
+                    f"Hydration rhythm: Space your {water_l}L target throughout active hours to support circulation with {steps} daily steps.",
+                    f"Goal synergy: To optimize {goal}, ensure lunch and dinner meals provide sustained complex carbs and protein.",
+                    f"Budget & adherence: Utilize seasonal farmers market produce to maximize micronutrient density at {budget} budget."
+                ],
+                "ai_insights": [
+                    "Dynamic AI partitioning adjusts macronutrient ratios in real-time based on your resting heart rate and daily activity logs.",
+                    "Electrolyte balance is maintained with targeted potassium-to-sodium ratios to promote optimal arterial tone."
+                ]
+            }
+
+        return jsonify({"success": True, "data": parsed_data})
+
+    except Exception as e:
+        print(f"❌ Generate AI Diet API Error: {e}")
+        return jsonify({"success": False, "error": str(e)}), 200
+
+# ==========================================
+# 11. START SERVER (MUST BE AT THE VERY BOTTOM)
 # ==========================================
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
+

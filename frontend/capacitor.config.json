@@ -1,0 +1,9 @@
+{
+  "appId": "com.medai.healthcare",
+  "appName": "MedAI",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https",
+    "cleartext": true
+  }
+}

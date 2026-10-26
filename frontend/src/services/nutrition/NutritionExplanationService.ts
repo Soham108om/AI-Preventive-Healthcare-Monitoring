@@ -5,6 +5,30 @@ export interface GeminiExplanation {
   personalized_tips: string[];
 }
 
+export interface AiDietPlanOutput {
+  title: string;
+  clinical_summary: string;
+  calories: number;
+  protein: number;
+  carbohydrates: number;
+  fat: number;
+  fiber: number;
+  water: number;
+  sodium: number;
+  sugar: number;
+  meals: {
+    breakfast: string;
+    morning_snack: string;
+    lunch: string;
+    evening_snack: string;
+    dinner: string;
+  };
+  foods_to_prefer: string[];
+  foods_to_limit: string[];
+  personalized_tips: string[];
+  ai_insights: string[];
+}
+
 /**
  * Fetches the AI explanation layer from the Flask backend.
  * Returns the parsed JSON or throws an error if unavailable.
@@ -58,3 +82,41 @@ export async function fetchNutritionExplanation(
   
   throw new Error(data.error || "Explanation generation returned failure");
 }
+
+/**
+ * Fetches a dynamic, custom AI-generated diet plan from the backend (Option 2).
+ */
+export async function fetchAiGeneratedDietPlan(
+  profile: UserProfile | null,
+  vitals: SmartwatchVitals,
+  inputs: UserInputs
+): Promise<AiDietPlanOutput> {
+  const response = await fetch("http://localhost:5000/generate_ai_diet", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      patient_profile: profile || {
+        age: 30,
+        height: 170,
+        weight: 70,
+        bmi: 24.2,
+        athlete_status: false,
+        medical_history: []
+      },
+      vitals: vitals,
+      user_inputs: inputs
+    })
+  });
+
+  if (!response.ok) {
+    throw new Error(`AI Diet server returned error status ${response.status}`);
+  }
+
+  const data = await response.json();
+  if (data.success && data.data) {
+    return data.data as AiDietPlanOutput;
+  }
+
+  throw new Error(data.error || "AI Diet generation returned failure");
+}
+

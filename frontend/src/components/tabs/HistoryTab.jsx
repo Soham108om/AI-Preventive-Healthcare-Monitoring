@@ -165,6 +165,28 @@ const HistoryTab = ({
                   "{report.ai_summary}"
                 </h4>
 
+                {/* Vitals Snapshot */}
+                {report.vitals && (
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+                    <div className="bg-[#F2FAF8] px-3 py-1.5 rounded-xl border border-[#DFEBE8]">
+                      <span className="text-[9px] font-bold text-[#6D807E] uppercase block">Heart Rate</span>
+                      <span className="text-xs font-extrabold text-[#173B3A]">{report.vitals.heart_rate || "N/A"} bpm</span>
+                    </div>
+                    <div className="bg-[#F2FAF8] px-3 py-1.5 rounded-xl border border-[#DFEBE8]">
+                      <span className="text-[9px] font-bold text-[#6D807E] uppercase block">SpO2 Oxygen</span>
+                      <span className="text-xs font-extrabold text-[#173B3A]">{report.vitals.spo2 || "N/A"}%</span>
+                    </div>
+                    <div className="bg-[#F2FAF8] px-3 py-1.5 rounded-xl border border-[#DFEBE8]">
+                      <span className="text-[9px] font-bold text-[#6D807E] uppercase block">Blood Pressure</span>
+                      <span className="text-xs font-extrabold text-[#173B3A]">{report.vitals.systolic_bp || "120"}/{report.vitals.diastolic_bp || "80"} mmHg</span>
+                    </div>
+                    <div className="bg-[#F2FAF8] px-3 py-1.5 rounded-xl border border-[#DFEBE8]">
+                      <span className="text-[9px] font-bold text-[#6D807E] uppercase block">Daily Steps</span>
+                      <span className="text-xs font-extrabold text-[#173B3A]">{report.vitals.steps || "N/A"} steps</span>
+                    </div>
+                  </div>
+                )}
+
                 <div className="pt-2">
                   <button
                     onClick={() => handleOpenShareModal(report)}
@@ -178,13 +200,18 @@ const HistoryTab = ({
 
               <div className="md:w-72 bg-[#F2FAF8] rounded-xl p-4 border border-[#DFEBE8] flex flex-col justify-between text-xs">
                 <div>
-                  <span className="text-[9px] font-black text-[#6D807E] uppercase tracking-widest block mb-2">Physician Sign-off</span>
+                  <span className="text-[9px] font-black text-[#6D807E] uppercase tracking-widest block mb-2">Clinical Status</span>
                   {report.status === 'Verified' ? (
                     <p className="text-[#173B3A] font-semibold italic leading-relaxed text-xs">"{report.doctor_notes}"</p>
-                  ) : (
+                  ) : report.status === 'Pending Review' ? (
                     <div className="flex items-center gap-1.5 text-[#94A5A3] font-semibold py-1.5 text-xs">
                       <Clock size={13} className="animate-pulse text-[#007F73]" />
                       <span>Awaiting Physician Review</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1.5 text-[#007F73] font-semibold py-1.5 text-xs">
+                      <CheckCircle2 size={13} className="text-[#007F73]" />
+                      <span>Self-Diagnosed Record</span>
                     </div>
                   )}
                 </div>
@@ -199,6 +226,7 @@ const HistoryTab = ({
           ))}
         </div>
       )}
+
 
       {/* 📲 SHARE CLINICAL REPORT MODAL */}
       {isShareModalOpen && (

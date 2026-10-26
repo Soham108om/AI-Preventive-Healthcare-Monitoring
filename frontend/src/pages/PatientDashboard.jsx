@@ -310,6 +310,28 @@ const PatientDashboard = () => {
       const data = await res.json();
       setResult(data);
 
+      // 🩺 AUTOMATICALLY PERSIST DIAGNOSED VITALS TO SUPABASE HISTORY
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const reportSummary = data.deep_analysis?.simple_summary || `AI Vitals Assessment: ${data.triage_result} Risk detected (HR: ${inputs.heart_rate} BPM, SpO2: ${inputs.spo2}%, BP: ${inputs.systolic_bp}/${inputs.diastolic_bp} mmHg).`;
+          const { data: insertedReport, error: insertError } = await supabase.from('medical_reports').insert([{
+            patient_id: user.id,
+            doctor_id: selectedDoctorId || null,
+            vitals: inputs,
+            ai_summary: reportSummary,
+            risk_level: data.triage_result || "LOW",
+            status: selectedDoctorId ? "Pending Review" : "Self Diagnosed"
+          }]).select().single();
+
+          if (!insertError && insertedReport) {
+            setHistoryReports(prev => [insertedReport, ...prev.filter(r => r.id !== insertedReport.id)]);
+          }
+        }
+      } catch (saveErr) {
+        console.warn("⚠️ Could not auto-save triage report to Supabase history:", saveErr);
+      }
+
       if (data.triage_result === 'HIGH') {
         handleFindHospital();
         triggerBrowserNotification(inputs, emergencyContact);
@@ -325,21 +347,26 @@ const PatientDashboard = () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       const patientId = user ? user.id : "mock-patient-id";
-      const { error } = await supabase.from('medical_reports').insert([{
+      const { data: insertedReport, error } = await supabase.from('medical_reports').insert([{
         patient_id: patientId,
         doctor_id: selectedDoctorId,
         vitals: inputs,
-        ai_summary: result.deep_analysis?.simple_summary || "Automated analysis completed.",
-        risk_level: result.triage_result || "LOW",
+        ai_summary: result?.deep_analysis?.simple_summary || "Automated analysis completed.",
+        risk_level: result?.triage_result || "LOW",
         status: "Pending Review"
-      }]);
+      }]).select().single();
+      
       if (error) throw error;
+      if (insertedReport) {
+        setHistoryReports(prev => [insertedReport, ...prev.filter(r => r.id !== insertedReport.id)]);
+      }
       setSendSuccess(true);
     } catch (e) {
       console.error("handleSendToDoctor failed:", e);
       setSendSuccess(true); // Allow mock success feedback
     } finally { setIsSending(false); }
   };
+
 
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-[#FFFFFF] via-[#F4FBFA] to-[#E9F8F6] font-plus text-[#173B3A] selection:bg-[#007F73]/10">
